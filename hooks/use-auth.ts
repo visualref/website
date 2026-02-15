@@ -8,6 +8,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
+  register: (data: LoginCredentials & { name: string }) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   setUser: (user: User) => void;
@@ -53,6 +54,17 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
+  register: async (data: LoginCredentials & { name: string }) => {
+    try {
+      const response = await authApi.register(data);
+      setToken(response.token);
+      set({ user: response.user, isAuthenticated: true });
+    } catch (error) {
+      console.error("Registration failed:", error);
+      throw error;
+    }
+  },
+
   logout: async () => {
     try {
       await authApi.logout();
@@ -70,7 +82,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       return;
     }
     try {
-      const user = await authApi.getMe();
+      const user = await authApi.getMe(token);
       set({ user, isAuthenticated: true, isLoading: false });
     } catch {
       // Token exists but API unavailable, use mock

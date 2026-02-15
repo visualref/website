@@ -27,9 +27,17 @@ const apiClient: AxiosInstance = axios.create({
 // Attach JWT token to requests
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = getToken();
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
+  
+  if (!config.headers) {
+    config.headers = {} as any;
   }
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  } else {
+    console.warn("API Call without token:", config.url);
+  }
+  
   return config;
 });
 
@@ -53,19 +61,30 @@ apiClient.interceptors.response.use(
 
 export const authApi = {
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    const { data } = await apiClient.post<AuthResponse>(
+    const { data } = await apiClient.post<ApiResponse<AuthResponse>>(
       "/api/auth/login",
       credentials
     );
-    return data;
+    return data.data;
+  },
+
+  register: async (credentials: LoginCredentials & { name: string }): Promise<AuthResponse> => {
+    const { data } = await apiClient.post<ApiResponse<AuthResponse>>(
+      "/api/auth/register",
+      credentials
+    );
+    return data.data;
   },
 
   logout: async (): Promise<void> => {
     await apiClient.post("/api/auth/logout");
   },
 
-  getMe: async (): Promise<User> => {
-    const { data } = await apiClient.get<ApiResponse<User>>("/api/auth/me");
+  getMe: async (token?: string): Promise<User> => {
+    const config = token
+      ? { headers: { Authorization: `Bearer ${token}` } }
+      : {};
+    const { data } = await apiClient.get<ApiResponse<User>>("/api/auth/me", config);
     return data.data;
   },
 };
