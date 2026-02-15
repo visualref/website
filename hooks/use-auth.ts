@@ -35,6 +35,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         setToken(response.token);
         set({ user: response.user, isAuthenticated: true });
       } catch {
+        // TODO: Remove mock fallback once backend integration is fully verified in production
         // Mock login for demo
         if (
           credentials.email === "admin@geo.com" &&
@@ -47,6 +48,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         }
       }
     } catch (error) {
+      console.error("Login failed:", error);
       throw error;
     }
   },
