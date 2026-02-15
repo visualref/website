@@ -105,11 +105,11 @@ export const topicsApi = {
   list: async (
     filters?: QueryFilters
   ): Promise<PaginatedResponse<Topic>> => {
-    const { data } = await apiClient.get<PaginatedResponse<Topic>>(
+    const { data } = await apiClient.get<ApiResponse<PaginatedResponse<Topic>>>(
       "/api/topics",
       { params: filters }
     );
-    return data;
+    return data.data;
   },
 
   get: async (id: string): Promise<Topic> => {
@@ -140,11 +140,11 @@ export const contentApi = {
   list: async (
     filters?: QueryFilters
   ): Promise<PaginatedResponse<ContentItem>> => {
-    const { data } = await apiClient.get<PaginatedResponse<ContentItem>>(
+    const { data } = await apiClient.get<ApiResponse<PaginatedResponse<ContentItem>>>(
       "/api/content",
       { params: filters }
     );
-    return data;
+    return data.data;
   },
 
   get: async (id: string): Promise<ContentDetail> => {

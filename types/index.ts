@@ -47,20 +47,42 @@ export interface AuthResponse {
 }
 
 // ==========================================
+// Verticals
+// ==========================================
+
+export interface Vertical {
+  id: string;
+  name: string;
+  domain?: string;
+  content_style?: Record<string, any>;
+  posting_schedule?: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateVerticalPayload {
+  name: string;
+  domain?: string;
+  content_style?: Record<string, any>;
+  posting_schedule?: Record<string, any>;
+}
+
+export interface UpdateVerticalPayload extends Partial<CreateVerticalPayload> {}
+
+// ==========================================
 // Topics
 // ==========================================
 
 export interface Topic {
   id: string;
-  title: string;
-  vertical: string;
-  keywords: string[];
-  contentType: ContentType;
-  priority: Priority;
-  status: ContentStatus;
+  title: string; // Mapped from query
+  vertical_id: string;
+  vertical?: Vertical;
+  status: string; // 'new', 'processing', 'completed'
+  volume?: number;
+  difficulty?: number;
   createdAt: string;
   updatedAt: string;
-  createdBy?: User;
 }
 
 export interface CreateTopicPayload {
@@ -79,23 +101,27 @@ export interface UpdateTopicPayload extends Partial<CreateTopicPayload> {}
 
 export interface ContentItem {
   id: string;
-  title: string;
-  status: ContentStatus;
-  vertical: string;
-  wordCount: number;
-  createdAt: string;
-  updatedAt: string;
-  assignee?: User;
-  priority: Priority;
+  title: string; // topic_text
+  status: string; // ContentStatus enum or string from backend
+  vertical_id: string;
+  vertical?: Vertical;
+  // wordCount: number; // Removed from backend? checking schema... ContentItem does not have wordCount. Draft string has length.
+  // createdAt: string;
+  // updatedAt: string;
+  // assignee?: User;
+  // priority: Priority; // Not in ContentItem schema? Topic has priority?
+  // I will leave them for now but optional if they are not in backend response.
+  created_at: string;
+  updated_at: string;
+  word_count?: number;
 }
 
 export interface ContentDetail extends ContentItem {
-  outline: OutlineSection[];
-  body: string;
-  comments: Comment[];
-  versions: VersionEntry[];
-  contentScore: number;
-  seoNotes: string[];
+  outline?: OutlineSection[];
+  draft?: string;
+  comments?: Comment[];
+  quality_score?: number;
+  versions?: VersionEntry[];
   coverImage?: string;
 }
 
@@ -138,6 +164,69 @@ export interface AnalyticsOverview {
   daysLeft: number;
   statusDistribution: StatusDistributionItem[];
   recentActivity: ActivityItem[];
+}
+
+// ==========================================
+// Entities
+// ==========================================
+
+export interface Entity {
+  id: string;
+  name: string;
+  type?: string;
+  vertical_id?: string;
+  vertical?: Vertical;
+  aliases?: string[];
+  properties?: Record<string, any>;
+  citation_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateEntityPayload {
+  name: string;
+  type: string;
+  vertical_id?: string;
+  aliases?: string[];
+  properties?: Record<string, any>;
+}
+
+export interface UpdateEntityPayload extends Partial<CreateEntityPayload> {}
+
+// ==========================================
+// Distributions
+// ==========================================
+
+export interface Distribution {
+  id: string;
+  content_item_id: string;
+  platform: string;
+  credentials_id?: string;
+  platform_id?: string;
+  url?: string;
+  status: 'SCHEDULED' | 'PUBLISHED' | 'FAILED' | 'CANCELLED';
+  metrics?: Record<string, any>;
+  result?: Record<string, any>;
+  settings?: Record<string, any>;
+  scheduled_at?: string;
+  published_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateDistributionPayload {
+  content_item_id: string;
+  platform: string;
+  credentials_id?: string;
+  settings?: Record<string, any>;
+  scheduled_at?: string;
+}
+
+export interface UpdateDistributionPayload {
+  status?: string;
+  result?: Record<string, any>;
+  scheduled_at?: string;
+  settings?: Record<string, any>;
 }
 
 export interface StatusDistributionItem {

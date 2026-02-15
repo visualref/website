@@ -216,13 +216,13 @@ export default function ContentDetailPage() {
                 Content Score
               </span>
               <span className="text-sm font-bold text-green-500">
-                {content.contentScore}/100
+                {content.quality_score}/100
               </span>
             </div>
             <div className="w-full bg-secondary rounded-full h-1.5">
               <div
                 className="bg-green-500 h-1.5 rounded-full"
-                style={{ width: `${content.contentScore}%` }}
+                style={{ width: `${content.quality_score}%` }}
               />
             </div>
             <div className="mt-3 text-xs text-muted-foreground space-y-1">
@@ -289,11 +289,10 @@ export default function ContentDetailPage() {
               </button>
             </div>
 
-            {/* Content */}
-            <div
-              className="px-12 py-12 editor-content prose prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: content.body }}
-            />
+              <div
+                className="px-12 py-12 editor-content prose prose-invert max-w-none"
+                dangerouslySetInnerHTML={{ __html: content.draft || "" }}
+              />
 
             {/* Pro Tip Callout */}
             <div className="mx-12 my-8 p-6 bg-accent/30 rounded-lg border border-border/50 flex gap-4">
@@ -323,7 +322,7 @@ export default function ContentDetailPage() {
               >
                 Comments{" "}
                 <Badge className="ml-1 h-4 px-1.5 text-[10px] bg-primary text-white">
-                  {content.comments.length}
+                  {(content.comments || []).length}
                 </Badge>
               </TabsTrigger>
               <TabsTrigger
@@ -337,7 +336,7 @@ export default function ContentDetailPage() {
             <TabsContent value="comments" className="flex-1 flex flex-col m-0">
               {/* Comments List */}
               <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                {content.comments.map((comment) => (
+                {(content.comments || []).map((comment) => (
                   <div
                     key={comment.id}
                     className={cn("flex gap-3", comment.resolved && "opacity-60")}
@@ -429,7 +428,14 @@ export default function ContentDetailPage() {
 
             <TabsContent value="history" className="flex-1 overflow-y-auto p-4 m-0">
               <div className="space-y-4">
-                {content.versions.map((version) => (
+                {/* content.versions no longer in mock? I kept it in mock above, so should be fine. But type def? */
+                 /* ContentDetail extends ContentItem which has generic fields. I commented out versions in ContentDetail type? */
+                 /* I should uncomment it in type if I use it */
+                }
+                {/* Assuming I fix type first, or I just use 'comments' tab content for now */
+                 /* Wait, I need to check ContentDetail type in types/index.ts. I commented out versions! */
+                }
+                {(content.versions || []).map((version) => (
                   <div key={version.id} className="flex gap-3">
                     <div className="flex flex-col items-center">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold border border-primary/20">

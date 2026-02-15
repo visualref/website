@@ -189,7 +189,7 @@ export default function ReviewQueuePage() {
                         </span>
                         <span className="text-xs font-mono text-muted-foreground">
                           #ID-{item.id.padStart(4, "0")} ·{" "}
-                          {(item.wordCount / 1000).toFixed(1)}k words
+                          {((item.word_count || 0) / 1000).toFixed(1)}k words
                         </span>
                       </div>
                     </TableCell>
@@ -205,41 +205,23 @@ export default function ReviewQueuePage() {
                     <TableCell className="py-4 px-6">
                       <div className="flex items-center gap-2">
                         <span className="text-sm">
-                          {verticalIcons[item.vertical] || "📄"}
+                          {verticalIcons[item.vertical?.name || ""] || "📄"}
                         </span>
                         <span className="text-sm text-muted-foreground">
-                          {item.vertical}
+                          {item.vertical?.name || item.vertical_id}
                         </span>
                       </div>
                     </TableCell>
                     <TableCell className="py-4 px-6">
                       <span className="text-sm font-mono text-muted-foreground">
-                        {new Date(item.createdAt).toISOString().split("T")[0]}
+                        {new Date(item.created_at).toISOString().split("T")[0]}
                       </span>
                     </TableCell>
                     <TableCell className="py-4 px-6">
                       <div className="flex items-center gap-2">
-                        {item.assignee ? (
-                          <>
-                            <Avatar className="h-7 w-7 border-2 border-card">
-                              <AvatarImage src={item.assignee.avatar} />
-                              <AvatarFallback className="text-[10px] bg-primary/20 text-primary font-medium">
-                                {item.assignee.name
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm text-muted-foreground">
-                              {item.assignee.name.split(" ")[0]}{" "}
-                              {item.assignee.name.split(" ")[1]?.[0]}.
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">
-                            Unassigned
-                          </span>
-                        )}
+                        <span className="text-sm text-muted-foreground">
+                          Unassigned
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell className="py-4 px-6 text-right">
