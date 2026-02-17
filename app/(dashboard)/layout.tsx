@@ -12,7 +12,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { isAuthenticated, isLoading, checkAuth } = useAuthStore();
+  const { isAuthenticated, isLoading, checkAuth, needsOnboarding } = useAuthStore();
 
   useEffect(() => {
     checkAuth();
@@ -21,8 +21,10 @@ export default function DashboardLayout({
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push("/login");
+    } else if (!isLoading && isAuthenticated && needsOnboarding) {
+      router.push("/onboarding");
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isLoading, isAuthenticated, needsOnboarding, router]);
 
   if (isLoading) {
     return (

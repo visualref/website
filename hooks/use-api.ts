@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { topicsApi, contentApi, analyticsApi } from "@/lib/api-client";
+import { topicsApi, contentApi, analyticsApi, workspacesApi } from "@/lib/api-client";
 import type { CreateTopicPayload, UpdateTopicPayload, QueryFilters } from "@/types";
 import { toast } from "sonner";
 
@@ -130,6 +130,29 @@ export function useRequestChanges() {
   });
 }
 
+export function useDistributeContent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      platforms,
+      settings,
+    }: {
+      id: string;
+      platforms: string[];
+      settings?: Record<string, any>;
+    }) => contentApi.distribute(id, { platforms, settings }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["content", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["content"] });
+      toast.success("Content published successfully!");
+    },
+    onError: () => {
+      toast.error("Failed to distribute content");
+    },
+  });
+}
+
 // ==========================================
 // Analytics Hooks
 // ==========================================
@@ -138,5 +161,25 @@ export function useAnalyticsOverview() {
   return useQuery({
     queryKey: ["analytics", "overview"],
     queryFn: () => analyticsApi.getOverview(),
+  });
+}
+
+// ==========================================
+// Workspace Hooks
+// ==========================================
+
+export function useWorkspaceContent(workspaceId: string, filters?: QueryFilters) {
+  return useQuery({
+    queryKey: ["workspaces", workspaceId, "content", filters],
+    queryFn: () => workspacesApi.listContent(workspaceId, filters),
+    enabled: !!workspaceId,
+  });
+}
+
+export function useWorkspaceTopics(workspaceId: string, filters?: QueryFilters) {
+  return useQuery({
+    queryKey: ["workspaces", workspaceId, "topics", filters],
+    queryFn: () => workspacesApi.listTopics(workspaceId, filters),
+    enabled: !!workspaceId,
   });
 }

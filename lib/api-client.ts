@@ -176,6 +176,13 @@ export const contentApi = {
   requestChanges: async (id: string, feedback: string): Promise<void> => {
     await apiClient.post(`/api/content/${id}/request-changes`, { feedback });
   },
+
+  distribute: async (
+    id: string,
+    payload: { platforms: string[]; settings?: Record<string, any> }
+  ): Promise<void> => {
+    await apiClient.post(`/api/content/${id}/distribute`, payload);
+  },
 };
 
 // ==========================================
@@ -188,6 +195,83 @@ export const analyticsApi = {
       "/api/analytics/overview"
     );
     return data.data;
+  },
+};
+
+// ==========================================
+// Workspaces API
+// ==========================================
+
+export const workspacesApi = {
+  create: async (payload: { name: string; description?: string }): Promise<any> => {
+    const { data } = await apiClient.post<ApiResponse<any>>(
+      "/api/workspaces",
+      payload
+    );
+    return data.data;
+  },
+
+  get: async (id: string): Promise<any> => {
+    const { data } = await apiClient.get<ApiResponse<any>>(
+      `/api/workspaces/${id}`
+    );
+    return data.data;
+  },
+
+  update: async (id: string, payload: { name?: string; description?: string }): Promise<any> => {
+    const { data } = await apiClient.put<ApiResponse<any>>(
+      `/api/workspaces/${id}`,
+      payload
+    );
+    return data.data;
+  },
+
+  listContent: async (
+    id: string,
+    filters?: QueryFilters
+  ): Promise<PaginatedResponse<ContentItem>> => {
+    const { data } = await apiClient.get<ApiResponse<PaginatedResponse<ContentItem>>>(
+      `/api/workspaces/${id}/content`,
+      { params: filters }
+    );
+    return data.data;
+  },
+
+  listTopics: async (
+    id: string,
+    filters?: QueryFilters
+  ): Promise<PaginatedResponse<Topic>> => {
+    const { data } = await apiClient.get<ApiResponse<PaginatedResponse<Topic>>>(
+      `/api/workspaces/${id}/topics`,
+      { params: filters }
+    );
+    return data.data;
+  },
+};
+
+// ==========================================
+// Subscription API
+// ==========================================
+
+export const subscriptionApi = {
+  get: async (workspaceId: string): Promise<any> => {
+    const { data } = await apiClient.get<ApiResponse<any>>(
+      "/api/subscriptions",
+      { params: { workspace_id: workspaceId } }
+    );
+    return data.data;
+  },
+
+  createCheckout: async (payload: { workspace_id: string; plan: string; interval?: string }): Promise<any> => {
+    const { data } = await apiClient.post<ApiResponse<any>>(
+      "/api/subscriptions/checkout",
+      payload
+    );
+    return data.data;
+  },
+
+  cancel: async (workspaceId: string): Promise<void> => {
+    await apiClient.post("/api/subscriptions/cancel", { workspace_id: workspaceId });
   },
 };
 

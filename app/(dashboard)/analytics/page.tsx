@@ -50,7 +50,7 @@ export default function AnalyticsPage() {
     return <div>Failed to load analytics data.</div>;
   }
 
-  const COLORS = overview.statusDistribution.map((item) => item.color);
+  const COLORS = overview?.statusDistribution?.map((item) => item.color);
 
   const StatCard = ({
     title,
@@ -140,7 +140,7 @@ export default function AnalyticsPage() {
                     paddingAngle={5}
                     dataKey="count"
                   >
-                    {overview.statusDistribution.map((entry, index) => (
+                    {overview?.statusDistribution?.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={entry.color || COLORS[index % COLORS.length]}
@@ -186,10 +186,10 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-8">
-              {overview.recentActivity.length === 0 ? (
+              {overview?.recentActivity?.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No recent activity.</p>
               ) : (
-                overview.recentActivity.map((activity) => (
+                overview?.recentActivity?.map((activity) => (
                   <div key={activity.id} className="flex">
                     <Avatar className="h-9 w-9 mt-0.5">
                       <AvatarImage src={activity.user?.avatar} />

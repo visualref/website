@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -27,7 +27,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ContentStatus } from "@/types";
-import { mockContentItems } from "@/lib/mock-data";
+import { useContentList } from "@/hooks/use-api";
 
 const statusConfig: Record<
   string,
@@ -64,20 +64,75 @@ const statusConfig: Record<
 };
 
 const verticalIcons: Record<string, string> = {
-  Finance: "🏦",
-  Energy: "⚡",
-  Technology: "💻",
-  Health: "❤️",
-  Marketing: "📢",
+  Finance: "\u{1F3E6}",
+  Energy: "\u26A1",
+  Technology: "\u{1F4BB}",
+  Health: "\u2764\uFE0F",
+  Marketing: "\u{1F4E2}",
 };
+
+function TableRowSkeleton() {
+  return (
+    <TableRow className="border-b border-border">
+      <TableCell className="py-4 px-6">
+        <Skeleton className="h-4 w-4" />
+      </TableCell>
+      <TableCell className="py-4 px-6">
+        <div className="flex flex-col gap-1.5">
+          <Skeleton className="h-4 w-64" />
+          <Skeleton className="h-3 w-32" />
+        </div>
+      </TableCell>
+      <TableCell className="py-4 px-6">
+        <Skeleton className="h-6 w-24 rounded-full" />
+      </TableCell>
+      <TableCell className="py-4 px-6">
+        <Skeleton className="h-4 w-20" />
+      </TableCell>
+      <TableCell className="py-4 px-6">
+        <Skeleton className="h-4 w-24" />
+      </TableCell>
+      <TableCell className="py-4 px-6">
+        <Skeleton className="h-4 w-20" />
+      </TableCell>
+      <TableCell className="py-4 px-6">
+        <Skeleton className="h-7 w-16" />
+      </TableCell>
+    </TableRow>
+  );
+}
 
 export default function ReviewQueuePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
-  const filteredItems = mockContentItems.filter((item) =>
-    item.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const { data: contentResponse, isLoading, isError } = useContentList({
+    search: searchQuery || undefined,
+    page: currentPage,
+    limit: pageSize,
+  });
+
+  const items = contentResponse?.data ?? [];
+  const total = contentResponse?.total ?? 0;
+  const totalPages = contentResponse?.totalPages ?? 1;
+
+  // Build page numbers to display
+  function getPageNumbers() {
+    const pages: (number | "ellipsis")[] = [];
+    if (totalPages <= 5) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push("ellipsis");
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (currentPage < totalPages - 2) pages.push("ellipsis");
+      pages.push(totalPages);
+    }
+    return pages;
+  }
 
   return (
     <div className="space-y-6 max-w-[1600px] mx-auto">
@@ -112,7 +167,10 @@ export default function ReviewQueuePage() {
             className="pl-10 bg-accent border-border focus-visible:ring-primary/50"
             placeholder="Search by title, ID, or keyword..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
           />
         </div>
 
@@ -126,7 +184,7 @@ export default function ReviewQueuePage() {
             </Badge>
           </Button>
           <Button variant="outline" className="gap-2 text-sm">
-            <span className="text-muted-foreground">📁</span>
+            <span className="text-muted-foreground">{"\u{1F4C1}"}</span>
             Vertical
           </Button>
           <Button variant="outline" className="gap-2 text-sm font-mono text-muted-foreground">
@@ -171,74 +229,92 @@ export default function ReviewQueuePage() {
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-border">
-              {filteredItems.map((item) => {
-                const statusInfo =
-                  statusConfig[item.status] || statusConfig[ContentStatus.DRAFT_READY];
-                return (
-                  <TableRow
-                    key={item.id}
-                    className="group hover:bg-accent/30 transition-colors"
-                  >
-                    <TableCell className="py-4 px-6">
-                      <Checkbox className="border-border" />
-                    </TableCell>
-                    <TableCell className="py-4 px-6">
-                      <div className="flex flex-col">
-                        <span className="font-medium group-hover:text-primary transition-colors">
-                          {item.title}
+              {isLoading ? (
+                Array.from({ length: pageSize }).map((_, i) => (
+                  <TableRowSkeleton key={i} />
+                ))
+              ) : isError ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="py-12 text-center text-muted-foreground text-sm">
+                    No data available
+                  </TableCell>
+                </TableRow>
+              ) : items.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="py-12 text-center text-muted-foreground text-sm">
+                    {searchQuery ? "No content items match your search." : "No content items found."}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                items.map((item) => {
+                  const statusInfo =
+                    statusConfig[item.status] || statusConfig[ContentStatus.DRAFT_READY];
+                  return (
+                    <TableRow
+                      key={item.id}
+                      className="group hover:bg-accent/30 transition-colors"
+                    >
+                      <TableCell className="py-4 px-6">
+                        <Checkbox className="border-border" />
+                      </TableCell>
+                      <TableCell className="py-4 px-6">
+                        <div className="flex flex-col">
+                          <span className="font-medium group-hover:text-primary transition-colors">
+                            {item.title}
+                          </span>
+                          <span className="text-xs font-mono text-muted-foreground">
+                            #ID-{item.id.padStart(4, "0")} ·{" "}
+                            {((item.word_count || 0) / 1000).toFixed(1)}k words
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4 px-6">
+                        <Badge
+                          variant="outline"
+                          className={`${statusInfo.classes} gap-1.5`}
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                          {statusInfo.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="py-4 px-6">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">
+                            {verticalIcons[item.vertical?.name || ""] || "\u{1F4C4}"}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            {item.vertical?.name || item.vertical_id}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4 px-6">
+                        <span className="text-sm font-mono text-muted-foreground">
+                          {new Date(item.created_at).toISOString().split("T")[0]}
                         </span>
-                        <span className="text-xs font-mono text-muted-foreground">
-                          #ID-{item.id.padStart(4, "0")} ·{" "}
-                          {((item.word_count || 0) / 1000).toFixed(1)}k words
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-4 px-6">
-                      <Badge
-                        variant="outline"
-                        className={`${statusInfo.classes} gap-1.5`}
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                        {statusInfo.label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="py-4 px-6">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm">
-                          {verticalIcons[item.vertical?.name || ""] || "📄"}
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {item.vertical?.name || item.vertical_id}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-4 px-6">
-                      <span className="text-sm font-mono text-muted-foreground">
-                        {new Date(item.created_at).toISOString().split("T")[0]}
-                      </span>
-                    </TableCell>
-                    <TableCell className="py-4 px-6">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">
-                          Unassigned
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-4 px-6 text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
-                        <Link href={`/content/${item.id}`}>
-                          <Button size="sm" className="h-7 text-xs shadow-md">
-                            Review
+                      </TableCell>
+                      <TableCell className="py-4 px-6">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">
+                            Unassigned
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4 px-6 text-right">
+                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
+                          <Link href={`/content/${item.id}`}>
+                            <Button size="sm" className="h-7 text-xs shadow-md">
+                              Review
+                            </Button>
+                          </Link>
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground">
+                            <MoreVertical className="h-4 w-4" />
                           </Button>
-                        </Link>
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </div>
@@ -247,12 +323,19 @@ export default function ReviewQueuePage() {
         <div className="border-t border-border p-4 flex flex-col md:flex-row items-center justify-between gap-4 bg-accent/30">
           <div className="text-sm text-muted-foreground flex items-center gap-2">
             <span>Showing</span>
-            <select className="bg-card border border-border text-foreground text-xs rounded px-2 py-1 focus:outline-none focus:border-primary">
-              <option>10</option>
-              <option>25</option>
-              <option>50</option>
+            <select
+              className="bg-card border border-border text-foreground text-xs rounded px-2 py-1 focus:outline-none focus:border-primary"
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
             </select>
-            <span>of 128 results</span>
+            <span>of {total} results</span>
           </div>
           <div className="flex items-center gap-1">
             <Button
@@ -264,30 +347,26 @@ export default function ReviewQueuePage() {
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            {[1, 2, 3].map((page) => (
-              <Button
-                key={page}
-                variant={currentPage === page ? "default" : "ghost"}
-                size="sm"
-                className="h-8 w-8 p-0 text-sm"
-                onClick={() => setCurrentPage(page)}
-              >
-                {page}
-              </Button>
-            ))}
-            <span className="text-muted-foreground px-1">...</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 text-sm"
-              onClick={() => setCurrentPage(12)}
-            >
-              12
-            </Button>
+            {getPageNumbers().map((page, idx) =>
+              page === "ellipsis" ? (
+                <span key={`ellipsis-${idx}`} className="text-muted-foreground px-1">...</span>
+              ) : (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? "default" : "ghost"}
+                  size="sm"
+                  className="h-8 w-8 p-0 text-sm"
+                  onClick={() => setCurrentPage(page)}
+                >
+                  {page}
+                </Button>
+              )
+            )}
             <Button
               variant="ghost"
               size="sm"
               className="h-8 w-8 p-0"
+              disabled={currentPage >= totalPages}
               onClick={() => setCurrentPage(currentPage + 1)}
             >
               <ChevronRight className="h-4 w-4" />

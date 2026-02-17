@@ -34,6 +34,12 @@ export interface User {
   email: string;
   role: string;
   avatar?: string;
+  workspace_id?: string;
+  workspace?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
 }
 
 export interface LoginCredentials {

@@ -7,11 +7,13 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  needsOnboarding: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (data: LoginCredentials & { name: string }) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   setUser: (user: User) => void;
+  reauthenticate: () => Promise<void>;
 }
 
 // Mock user for demo purposes (no backend)
@@ -23,10 +25,27 @@ const MOCK_USER: User = {
   avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuA2PlZl1e1qSvavYP8LTJ2IaBZ7ywBAfoVy5LD1X5ZR2hpQ-UUZgjysJnYSoSrr3-CSDblJ715_1iG80omiB49ez744JtmOG8g80PtLq78ozQwpVwqD-WjLBCmREs1x41eynIinZaPJzVMwBhL0Q6tfed7-tLEYl1DFLzTB0lDFy4YHS0TQxxtSTnH9mOaMFZQiq8M6Auz4fSLPb5dHtw8s1a708E-WCieDhUSoov6aOC2LZ9vCJhvkttsid5r8ylXdNUPQwayW80w",
 };
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: true,
+  get needsOnboarding() {
+    const user = get().user;
+    return !!user && !user.workspace_id;
+  },
+
+  reauthenticate: async () => {
+    try {
+      const token = getToken();
+      if (token) {
+        const user = await authApi.getMe(token);
+        set({ user });
+      }
+    } catch (error) {
+      console.error("Re-authentication failed:", error);
+      // Don't log out, just fail gracefully
+    }
+  },
 
   login: async (credentials: LoginCredentials) => {
     try {
