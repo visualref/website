@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import apiClient from "@/lib/api-client";
+import { setToken } from "@/lib/auth";
 import type { ApiResponse } from "@/types";
 
 // ==========================================
@@ -190,13 +191,17 @@ export default function OnboardingPage() {
     setIsLoading(true);
     try {
       const response = await apiClient.post<
-        ApiResponse<{ id: string; name: string; slug: string }>
+        ApiResponse<{ id: string; name: string; slug: string; token?: string }>
       >("/api/workspaces", {
         name: data.name,
         slug: data.slug,
       });
-      const workspace = response.data.data;
+      const { workspace, token } = response.data.data;
       setWorkspaceId(workspace.id);
+
+      if (token) {
+        setToken(token);
+      }
 
       // Update user in auth store with workspace info
       if (user) {

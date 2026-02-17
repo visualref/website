@@ -74,9 +74,11 @@ export default function TopicFormPage({ params }: { params: Promise<{ id: string
   const mutation = useMutation({
     mutationFn: (data: FormData) => {
       const payload = {
-        ...data,
-        vertical: data.vertical_id, // API expects 'vertical' string ID? check types. CreateTopicPayload has 'vertical' string.
-        keywords: data.keywords ? data.keywords.split(",").map(k => k.trim()) : [],
+        client_id: data.vertical_id,
+        title: data.title,
+        target_keywords: data.keywords ? data.keywords.split(",").map(k => k.trim()) : [],
+        content_type: data.contentType,
+        priority: data.priority,
       };
       
       if (isNew) {

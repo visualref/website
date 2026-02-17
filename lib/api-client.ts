@@ -15,6 +15,8 @@ import type {
   QueryFilters,
 } from "@/types";
 
+import { ContentStatus } from "@/types";
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 const apiClient: AxiosInstance = axios.create({
@@ -147,10 +149,50 @@ export const contentApi = {
     return data.data;
   },
 
+
+
   get: async (id: string): Promise<ContentDetail> => {
-    const { data } = await apiClient.get<ApiResponse<ContentDetail>>(
+    const { data } = await apiClient.get<ApiResponse<any>>(
       `/api/content/${id}`
     );
+    
+    const raw = data.data;
+
+    // Handle nested response from backend
+    if (raw.content && raw.outline) {
+      // Map backend status to frontend enum
+      let status = raw.content.status;
+      if (status === "REVIEW") status = ContentStatus.IN_REVIEW;
+      if (status === "DRAFT") status = ContentStatus.DRAFT_READY;
+      if (status === "OUTLINE") status = ContentStatus.OUTLINE_READY;
+      
+      const mapOutlineNode = (node: any, level: "h2" | "h3" = "h2"): any => ({
+        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(7),
+        level,
+        title: node.heading || node.title,
+        children: node.subsections?.map((sub: any) => mapOutlineNode(sub, "h3")) || []
+      });
+
+      const mappedOutline = raw.outline.sections?.map((section: any) => mapOutlineNode(section, "h2")) || [];
+
+      return {
+        id: raw.content.id,
+        title: raw.outline.title || raw.content.title || "Untitled",
+        status: status,
+        vertical_id: raw.content.vertical_id,
+        vertical: raw.vertical,
+        created_at: raw.content.created_at,
+        updated_at: raw.content.updated_at,
+        // Detailed fields
+        outline: mappedOutline,
+        draft: raw.draft || raw.content.draft,
+        quality_score: raw.content.quality_score,
+        comments: raw.content.comments || [],
+        versions: raw.content.versions || [],
+        coverImage: raw.content.cover_image,
+      } as ContentDetail;
+    }
+
     return data.data;
   },
 

@@ -26,6 +26,7 @@ import {
   Loader2,
   Upload,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -247,7 +248,7 @@ export default function ContentDetailPage() {
             </div>
             <div className="flex items-center gap-3">
               <span className="text-lg font-semibold truncate max-w-[400px]">
-                {content.title}
+                {content.topic_text}
               </span>
               {getStatusBadge(content.status)}
             </div>
@@ -336,74 +337,45 @@ export default function ContentDetailPage() {
               <SortAsc className="h-4 w-4" />
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-1">
-            {/* H1 */}
-            <button
-              className={cn(
-                "group flex items-center gap-2 p-2 rounded-lg w-full text-left transition-colors text-sm",
-                activeSection === "s1"
-                  ? "bg-primary/10 text-primary border-l-2 border-primary"
-                  : "hover:bg-accent text-foreground"
-              )}
-              onClick={() => setActiveSection("s1")}
-            >
-              <Heading className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary" />
-              <span className="font-medium">Introduction</span>
-            </button>
+            {/* Dynamic Outline */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-1">
+              {(content.outline || []).map((section: any) => (
+                <div key={section.id} className="mb-1">
+                  {/* Section Header (H2) */}
+                  <button
+                    className={cn(
+                      "group flex items-center gap-2 p-2 rounded-lg w-full text-left transition-colors text-sm",
+                      activeSection === section.id
+                        ? "bg-primary/10 text-primary border-l-2 border-primary"
+                        : "hover:bg-accent text-foreground"
+                    )}
+                    onClick={() => setActiveSection(section.id)}
+                  >
+                    <Heading className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary shrink-0" />
+                    <span className="font-medium truncate">{section.title}</span>
+                  </button>
 
-            {/* H2: The Rise of Generative AI */}
-            <button
-              className={cn(
-                "group flex items-center gap-2 p-2 ml-4 rounded-lg w-full text-left transition-colors text-sm",
-                activeSection === "s2"
-                  ? "bg-primary/10 text-primary border-l-2 border-primary"
-                  : "hover:bg-accent text-muted-foreground"
-              )}
-              onClick={() => setActiveSection("s2")}
-            >
-              <span className="text-xs opacity-70">H2</span>
-              <span className="font-medium">The Rise of Generative AI</span>
-            </button>
-
-            {/* H3s */}
-            {["Impact on SEO", "Speed to Market"].map((title, i) => (
-              <button
-                key={i}
-                className={cn(
-                  "group flex items-center gap-2 p-2 ml-8 rounded-lg w-full text-left transition-colors text-sm",
-                  "hover:bg-accent text-muted-foreground hover:text-foreground relative"
-                )}
-              >
-                <span className="text-xs opacity-50">H3</span>
-                <span>{title}</span>
-              </button>
-            ))}
-
-            {/* H2: Ethical Considerations */}
-            <button
-              className="group flex items-center gap-2 p-2 ml-4 rounded-lg w-full text-left transition-colors text-sm hover:bg-accent text-muted-foreground hover:text-foreground"
-              onClick={() => setActiveSection("s3")}
-            >
-              <span className="text-xs opacity-50">H2</span>
-              <span className="font-medium">Ethical Considerations</span>
-            </button>
-
-            {["Copyright Issues", "Bias in Models"].map((title, i) => (
-              <button
-                key={i}
-                className="group flex items-center gap-2 p-2 ml-8 rounded-lg w-full text-left transition-colors text-sm hover:bg-accent text-muted-foreground hover:text-foreground"
-              >
-                <span className="text-xs opacity-50">H3</span>
-                <span>{title}</span>
-              </button>
-            ))}
-
-            {/* H2: Conclusion */}
-            <button className="group flex items-center gap-2 p-2 ml-4 rounded-lg w-full text-left transition-colors text-sm hover:bg-accent text-muted-foreground hover:text-foreground">
-              <span className="text-xs opacity-50">H2</span>
-              <span className="font-medium">Conclusion</span>
-            </button>
-          </div>
+                  {/* Subsections (H3) */}
+                  {section.children?.map((child: any) => (
+                    <button
+                      key={child.id}
+                      className={cn(
+                        "group flex items-center gap-2 p-2 ml-4 rounded-lg w-[calc(100%-1rem)] text-left transition-colors text-sm",
+                        activeSection === child.id
+                          ? "bg-primary/10 text-primary border-l-2 border-primary"
+                          : "hover:bg-accent text-muted-foreground hover:text-foreground"
+                      )}
+                      onClick={() => setActiveSection(child.id)}
+                    >
+                      <span className="text-[10px] opacity-50 shrink-0 border border-border px-1 rounded">
+                        {child.level?.toUpperCase() || "H3"}
+                      </span>
+                      <span className="truncate">{child.title}</span>
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
 
           {/* SEO Score Widget */}
           <div className="p-4 border-t border-border bg-accent/30">
@@ -485,10 +457,9 @@ export default function ContentDetailPage() {
               </button>
             </div>
 
-            <div
-              className="px-12 py-12 editor-content prose prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: content.draft || "" }}
-            />
+            <div className="px-12 py-12 editor-content prose prose-invert max-w-none">
+              <ReactMarkdown>{content.draft || ""}</ReactMarkdown>
+            </div>
 
             {/* Pro Tip Callout */}
             <div className="mx-12 my-8 p-6 bg-accent/30 rounded-lg border border-border/50 flex gap-4">

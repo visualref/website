@@ -5,7 +5,7 @@
 export enum ContentStatus {
   OUTLINE_READY = "outline_ready",
   DRAFT_READY = "draft_ready",
-  IN_REVIEW = "in_review",
+  IN_REVIEW = "REVIEW",
   APPROVED = "approved",
   REJECTED = "rejected",
   PUBLISHED = "published",
@@ -92,10 +92,10 @@ export interface Topic {
 }
 
 export interface CreateTopicPayload {
+  client_id: string;
   title: string;
-  vertical: string;
-  keywords: string[];
-  contentType: ContentType;
+  target_keywords: string[];
+  content_type: ContentType;
   priority: Priority;
 }
 
