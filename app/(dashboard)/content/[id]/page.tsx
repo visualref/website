@@ -248,7 +248,7 @@ export default function ContentDetailPage() {
             </div>
             <div className="flex items-center gap-3">
               <span className="text-lg font-semibold truncate max-w-[400px]">
-                {content.topic_text}
+                {content.title}
               </span>
               {getStatusBadge(content.status)}
             </div>
