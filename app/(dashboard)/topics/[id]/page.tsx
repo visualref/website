@@ -64,9 +64,9 @@ export default function TopicFormPage({ params }: { params: Promise<{ id: string
       reset({
         title: topic.title,
         vertical_id: topic.vertical_id,
-        // keywords: topic.keywords?.join(", "), // Assuming keywords is an array
-        contentType: (topic as any).contentType || ContentType.ARTICLE, // Fallback if missing
-        priority: (topic as any).priority || Priority.MEDIUM,
+        keywords: topic.keywords?.join(", "),
+        contentType: topic.contentType || ContentType.ARTICLE,
+        priority: topic.priority || Priority.MEDIUM,
       });
     }
   }, [topic, reset]);
@@ -80,7 +80,7 @@ export default function TopicFormPage({ params }: { params: Promise<{ id: string
         content_type: data.contentType,
         priority: data.priority,
       };
-      
+
       if (isNew) {
         return topicsApi.create(payload);
       } else {
@@ -146,8 +146,8 @@ export default function TopicFormPage({ params }: { params: Promise<{ id: string
 
         <div className="space-y-2">
           <Label htmlFor="vertical">Vertical</Label>
-          <Select 
-            onValueChange={(value) => setValue("vertical_id", value)} 
+          <Select
+            onValueChange={(value) => setValue("vertical_id", value)}
             defaultValue={watch("vertical_id")}
           >
             <SelectTrigger>
@@ -165,8 +165,8 @@ export default function TopicFormPage({ params }: { params: Promise<{ id: string
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="contentType">Content Type</Label>
-            <Select 
-              onValueChange={(value) => setValue("contentType", value as ContentType)} 
+            <Select
+              onValueChange={(value) => setValue("contentType", value as ContentType)}
               defaultValue={watch("contentType")}
             >
               <SelectTrigger>
@@ -183,8 +183,8 @@ export default function TopicFormPage({ params }: { params: Promise<{ id: string
 
           <div className="space-y-2">
             <Label htmlFor="priority">Priority</Label>
-            <Select 
-              onValueChange={(value) => setValue("priority", value as Priority)} 
+            <Select
+              onValueChange={(value) => setValue("priority", value as Priority)}
               defaultValue={watch("priority")}
             >
               <SelectTrigger>

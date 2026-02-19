@@ -29,7 +29,7 @@ const apiClient: AxiosInstance = axios.create({
 // Attach JWT token to requests
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = getToken();
-  
+
   if (!config.headers) {
     config.headers = {} as any;
   }
@@ -39,7 +39,7 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   } else {
     console.warn("API Call without token:", config.url);
   }
-  
+
   return config;
 });
 
@@ -86,8 +86,8 @@ export const authApi = {
     const config = token
       ? { headers: { Authorization: `Bearer ${token}` } }
       : {};
-    const { data } = await apiClient.get<ApiResponse<User>>("/api/auth/me", config);
-    return data.data;
+    const { data } = await apiClient.get<ApiResponse<{ user: User }>>("/api/auth/me", config);
+    return data.data.user;
   },
 };
 
@@ -95,38 +95,62 @@ export const authApi = {
 // Topics API
 // ==========================================
 
+// Helper to map backend topic to frontend interface
+const mapTopic = (data: any, content?: any): Topic => ({
+  id: data.id,
+  title: data.query || data.title, // Map query to title
+  vertical_id: data.vertical_id,
+  vertical: data.verticals, // Map verticals to vertical
+  status: data.status,
+  volume: data.volume,
+  difficulty: data.difficulty,
+  // Map content-related fields if available
+  contentType: content?.content_type,
+  priority: content?.priority, // If available in content
+  keywords: data.target_keywords || [], // If available
+  createdAt: data.created_at, // Map snake_case to camelCase
+  updatedAt: data.updated_at,
+});
+
 export const topicsApi = {
   create: async (payload: CreateTopicPayload): Promise<Topic> => {
-    const { data } = await apiClient.post<ApiResponse<Topic>>(
+    const { data } = await apiClient.post<ApiResponse<any>>(
       "/api/topics",
       payload
     );
-    return data.data;
+    return mapTopic(data.data.topic || data.data);
   },
 
   list: async (
     filters?: QueryFilters
   ): Promise<PaginatedResponse<Topic>> => {
-    const { data } = await apiClient.get<ApiResponse<PaginatedResponse<Topic>>>(
+    const { data } = await apiClient.get<ApiResponse<PaginatedResponse<any>>>(
       "/api/topics",
       { params: filters }
     );
-    return data.data;
+    return {
+      ...data.data,
+      data: data.data.data.map((t) => mapTopic(t)),
+    };
   },
 
   get: async (id: string): Promise<Topic> => {
-    const { data } = await apiClient.get<ApiResponse<Topic>>(
+    const { data } = await apiClient.get<ApiResponse<any>>(
       `/api/topics/${id}`
     );
-    return data.data;
+    // Handle { topic: ..., content: ... } response structure
+    if (data.data.topic) {
+      return mapTopic(data.data.topic, data.data.content);
+    }
+    return mapTopic(data.data);
   },
 
   update: async (id: string, payload: UpdateTopicPayload): Promise<Topic> => {
-    const { data } = await apiClient.put<ApiResponse<Topic>>(
+    const { data } = await apiClient.put<ApiResponse<any>>(
       `/api/topics/${id}`,
       payload
     );
-    return data.data;
+    return mapTopic(data.data);
   },
 
   delete: async (id: string): Promise<void> => {
@@ -155,7 +179,7 @@ export const contentApi = {
     const { data } = await apiClient.get<ApiResponse<any>>(
       `/api/content/${id}`
     );
-    
+
     const raw = data.data;
 
     // Handle nested response from backend
@@ -165,7 +189,7 @@ export const contentApi = {
       if (status === "REVIEW") status = ContentStatus.IN_REVIEW;
       if (status === "DRAFT") status = ContentStatus.DRAFT_READY;
       if (status === "OUTLINE") status = ContentStatus.OUTLINE_READY;
-      
+
       const mapOutlineNode = (node: any, level: "h2" | "h3" = "h2"): any => ({
         id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(7),
         level,

@@ -16,15 +16,6 @@ interface AuthState {
   reauthenticate: () => Promise<void>;
 }
 
-// Mock user for demo purposes (no backend)
-const MOCK_USER: User = {
-  id: "1",
-  name: "Alex Morgan",
-  email: "alex@contentiq.io",
-  role: "admin",
-  avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuA2PlZl1e1qSvavYP8LTJ2IaBZ7ywBAfoVy5LD1X5ZR2hpQ-UUZgjysJnYSoSrr3-CSDblJ715_1iG80omiB49ez744JtmOG8g80PtLq78ozQwpVwqD-WjLBCmREs1x41eynIinZaPJzVMwBhL0Q6tfed7-tLEYl1DFLzTB0lDFy4YHS0TQxxtSTnH9mOaMFZQiq8M6Auz4fSLPb5dHtw8s1a708E-WCieDhUSoov6aOC2LZ9vCJhvkttsid5r8ylXdNUPQwayW80w",
-};
-
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: false,
@@ -49,24 +40,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   login: async (credentials: LoginCredentials) => {
     try {
-      // Try real API first, fallback to mock
-      try {
-        const response = await authApi.login(credentials);
-        setToken(response.token);
-        set({ user: response.user, isAuthenticated: true });
-      } catch {
-        // TODO: Remove mock fallback once backend integration is fully verified in production
-        // Mock login for demo
-        if (
-          credentials.email === "admin@geo.com" &&
-          credentials.password === "password123"
-        ) {
-          setToken("mock-jwt-token-" + Date.now());
-          set({ user: MOCK_USER, isAuthenticated: true });
-        } else {
-          throw new Error("Invalid credentials");
-        }
-      }
+      const response = await authApi.login(credentials);
+      setToken(response.token);
+      set({ user: response.user, isAuthenticated: true });
     } catch (error) {
       console.error("Login failed:", error);
       throw error;
@@ -104,8 +80,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const user = await authApi.getMe(token);
       set({ user, isAuthenticated: true, isLoading: false });
     } catch {
-      // Token exists but API unavailable, use mock
-      set({ user: MOCK_USER, isAuthenticated: true, isLoading: false });
+      // Token invalid or API error - log out
+      removeToken();
+      set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },
 

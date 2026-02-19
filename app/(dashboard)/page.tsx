@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   BookOpen,
   Clock,
@@ -173,9 +174,11 @@ export default function DashboardPage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button className="gap-2 shadow-lg shadow-primary/20">
-            <Plus className="h-4 w-4" />
-            New Content
+          <Button asChild className="gap-2 shadow-lg shadow-primary/20">
+            <Link href="/topics">
+              <Plus className="h-4 w-4" />
+              New Content
+            </Link>
           </Button>
         </div>
       </div>

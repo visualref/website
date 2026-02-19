@@ -73,7 +73,7 @@ export interface CreateVerticalPayload {
   posting_schedule?: Record<string, any>;
 }
 
-export interface UpdateVerticalPayload extends Partial<CreateVerticalPayload> {}
+export interface UpdateVerticalPayload extends Partial<CreateVerticalPayload> { }
 
 // ==========================================
 // Topics
@@ -87,6 +87,9 @@ export interface Topic {
   status: string; // 'new', 'processing', 'completed'
   volume?: number;
   difficulty?: number;
+  keywords?: string[];
+  contentType?: ContentType;
+  priority?: Priority;
   createdAt: string;
   updatedAt: string;
 }
@@ -99,7 +102,7 @@ export interface CreateTopicPayload {
   priority: Priority;
 }
 
-export interface UpdateTopicPayload extends Partial<CreateTopicPayload> {}
+export interface UpdateTopicPayload extends Partial<CreateTopicPayload> { }
 
 // ==========================================
 // Content
@@ -197,7 +200,7 @@ export interface CreateEntityPayload {
   properties?: Record<string, any>;
 }
 
-export interface UpdateEntityPayload extends Partial<CreateEntityPayload> {}
+export interface UpdateEntityPayload extends Partial<CreateEntityPayload> { }
 
 // ==========================================
 // Distributions
