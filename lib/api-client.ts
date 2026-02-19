@@ -255,12 +255,46 @@ export const contentApi = {
 // Analytics API
 // ==========================================
 
+// Helper to map backend analytics to frontend interface
+const mapAnalytics = (data: any): AnalyticsOverview => {
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth();
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const daysLeft = daysInMonth - currentDate.getDate();
+
+  const statusColors: Record<string, string> = {
+    "draft": "#94a3b8", // slate-400
+    "review": "#f59e0b", // amber-500
+    "approved": "#22c55e", // green-500
+    "published": "#3b82f6", // blue-500
+    "rejected": "#ef4444", // red-500
+  };
+
+  return {
+    totalContent: data.total_content || 0,
+    totalContentChange: 0, // Mocked for now
+    inReviewQueue: data.in_review || 0,
+    highPriorityCount: 0, // Mocked for now
+    approvalRate: data.approval_rate || 0,
+    approvalRateChange: 0, // Mocked for now
+    monthlyGoalPercent: 0, // Mocked for now
+    daysLeft: daysLeft,
+    statusDistribution: (data.content_by_status || []).map((s: any) => ({
+      status: s.status,
+      count: s.count,
+      color: statusColors[s.status.toLowerCase()] || "#cbd5e1",
+    })),
+    recentActivity: [], // Mocked empty for now
+  };
+};
+
 export const analyticsApi = {
   getOverview: async (): Promise<AnalyticsOverview> => {
-    const { data } = await apiClient.get<ApiResponse<AnalyticsOverview>>(
+    const { data } = await apiClient.get<ApiResponse<any>>(
       "/api/analytics/overview"
     );
-    return data.data;
+    return mapAnalytics(data.data);
   },
 };
 
