@@ -12,6 +12,7 @@ import {
   LogOut,
   Sparkles,
   CreditCard,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/hooks/use-auth";
@@ -21,7 +22,7 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/topics", label: "Topics", icon: FileText },
   { href: "/review", label: "Review Queue", icon: ClipboardCheck, badge: 12 },
-  { href: "/verticals", label: "Verticals", icon: BarChart3 }, 
+  { href: "/company-profile", label: "Company Profile", icon: Building2 },
   { href: "/entities", label: "Entities", icon: Users },
   { href: "/distributions", label: "Distributions", icon: Sparkles },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },

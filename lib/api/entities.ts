@@ -7,7 +7,7 @@ export const entitiesApi = {
     return response.data;
   },
 
-  getAll: async (params?: { page?: number; limit?: number; search?: string; vertical_id?: string }): Promise<PaginatedResponse<Entity>> => {
+  getAll: async (params?: { page?: number; limit?: number; search?: string; workspace_id?: string }): Promise<PaginatedResponse<Entity>> => {
     const response = await apiClient.get("/api/entities", { params });
     return response.data.data;
   },
