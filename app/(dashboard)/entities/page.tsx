@@ -89,7 +89,6 @@ export default function EntitiesPage() {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Type</TableHead>
-              <TableHead>Vertical</TableHead>
               <TableHead>Citations</TableHead>
               <TableHead className="w-[100px]"></TableHead>
             </TableRow>
@@ -105,9 +104,6 @@ export default function EntitiesPage() {
                     <Skeleton className="h-4 w-[100px]" />
                   </TableCell>
                   <TableCell>
-                    <Skeleton className="h-4 w-[100px]" />
-                  </TableCell>
-                  <TableCell>
                     <Skeleton className="h-4 w-[50px]" />
                   </TableCell>
                   <TableCell>
@@ -117,13 +113,13 @@ export default function EntitiesPage() {
               ))
             ) : isError ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-red-500">
+                <TableCell colSpan={4} className="text-center py-8 text-red-500">
                   Failed to load entities
                 </TableCell>
               </TableRow>
             ) : data?.data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                   No entities found
                 </TableCell>
               </TableRow>
@@ -132,7 +128,6 @@ export default function EntitiesPage() {
                 <TableRow key={entity.id}>
                   <TableCell className="font-medium">{entity.name}</TableCell>
                   <TableCell>{entity.type || "-"}</TableCell>
-                  <TableCell>{entity.vertical?.name || "-"}</TableCell>
                   <TableCell>{entity.citation_count}</TableCell>
                   <TableCell>
                     <DropdownMenu>

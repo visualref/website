@@ -7,7 +7,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { topicsApi } from "@/lib/api-client";
-import { verticalsApi } from "@/lib/api/verticals";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +25,6 @@ import { ContentType, Priority } from "@/types";
 
 const schema = z.object({
   title: z.string().min(1, "Title is required"),
-  vertical_id: z.string().min(1, "Vertical is required"),
   keywords: z.string().optional(), // Comma separated string
   contentType: z.nativeEnum(ContentType),
   priority: z.nativeEnum(Priority),
@@ -54,16 +52,10 @@ export default function TopicFormPage({ params }: { params: Promise<{ id: string
     enabled: !isNew,
   });
 
-  const { data: verticalsData, isLoading: isLoadingVerticals } = useQuery({
-    queryKey: ["verticals"],
-    queryFn: () => verticalsApi.list(),
-  });
-
   useEffect(() => {
     if (topic) {
       reset({
         title: topic.title,
-        vertical_id: topic.vertical_id,
         keywords: topic.keywords?.join(", "),
         contentType: topic.contentType || ContentType.ARTICLE,
         priority: topic.priority || Priority.MEDIUM,
@@ -74,7 +66,6 @@ export default function TopicFormPage({ params }: { params: Promise<{ id: string
   const mutation = useMutation({
     mutationFn: (data: FormData) => {
       const payload = {
-        client_id: data.vertical_id,
         title: data.title,
         target_keywords: data.keywords ? data.keywords.split(",").map(k => k.trim()) : [],
         content_type: data.contentType,
@@ -111,7 +102,7 @@ export default function TopicFormPage({ params }: { params: Promise<{ id: string
     mutation.mutate(data);
   };
 
-  if (isLoadingTopic || isLoadingVerticals) {
+  if (isLoadingTopic) {
     return (
       <div className="p-8">
         <Skeleton className="h-8 w-full mb-4" />
@@ -142,24 +133,6 @@ export default function TopicFormPage({ params }: { params: Promise<{ id: string
           <Label htmlFor="title">Title</Label>
           <Input id="title" {...register("title")} placeholder="e.g. 10 Best SEO Practices" />
           {errors.title && <p className="text-sm text-red-500">{errors.title.message}</p>}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="vertical">Vertical</Label>
-          <Select
-            onValueChange={(value) => setValue("vertical_id", value)}
-            defaultValue={watch("vertical_id")}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select a vertical" />
-            </SelectTrigger>
-            <SelectContent>
-              {verticalsData?.data?.map((v) => (
-                <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors.vertical_id && <p className="text-sm text-red-500">{errors.vertical_id.message}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-4">

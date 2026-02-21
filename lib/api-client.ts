@@ -98,17 +98,15 @@ export const authApi = {
 // Helper to map backend topic to frontend interface
 const mapTopic = (data: any, content?: any): Topic => ({
   id: data.id,
-  title: data.query || data.title, // Map query to title
-  vertical_id: data.vertical_id,
-  vertical: data.verticals, // Map verticals to vertical
+  title: data.query || data.title,
+  workspace_id: data.workspace_id,
   status: data.status,
   volume: data.volume,
   difficulty: data.difficulty,
-  // Map content-related fields if available
   contentType: content?.content_type,
-  priority: content?.priority, // If available in content
-  keywords: data.target_keywords || [], // If available
-  createdAt: data.created_at, // Map snake_case to camelCase
+  priority: content?.priority,
+  keywords: data.target_keywords || [],
+  createdAt: data.created_at,
   updatedAt: data.updated_at,
 });
 
@@ -173,8 +171,6 @@ export const contentApi = {
     return data.data;
   },
 
-
-
   get: async (id: string): Promise<ContentDetail> => {
     const { data } = await apiClient.get<ApiResponse<any>>(
       `/api/content/${id}`
@@ -194,7 +190,7 @@ export const contentApi = {
         id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(7),
         level,
         title: node.heading || node.title,
-        children: node.subsections?.map((sub: any) => mapOutlineNode(sub, "h3")) || []
+        children: node.subsections?.map((sub: any) => mapOutlineNode(sub, "h3")) || [],
       });
 
       const mappedOutline = raw.outline.sections?.map((section: any) => mapOutlineNode(section, "h2")) || [];
@@ -203,11 +199,9 @@ export const contentApi = {
         id: raw.content.id,
         title: raw.outline.title || raw.content.title || "Untitled",
         status: status,
-        vertical_id: raw.content.vertical_id,
-        vertical: raw.vertical,
+        workspace_id: raw.content.workspace_id,
         created_at: raw.content.created_at,
         updated_at: raw.content.updated_at,
-        // Detailed fields
         outline: mappedOutline,
         draft: raw.draft || raw.content.draft,
         quality_score: raw.content.quality_score,
@@ -273,19 +267,19 @@ const mapAnalytics = (data: any): AnalyticsOverview => {
 
   return {
     totalContent: data.total_content || 0,
-    totalContentChange: 0, // Mocked for now
+    totalContentChange: 0,
     inReviewQueue: data.in_review || 0,
-    highPriorityCount: 0, // Mocked for now
+    highPriorityCount: 0,
     approvalRate: data.approval_rate || 0,
-    approvalRateChange: 0, // Mocked for now
-    monthlyGoalPercent: 0, // Mocked for now
+    approvalRateChange: 0,
+    monthlyGoalPercent: 0,
     daysLeft: daysLeft,
     statusDistribution: (data.content_by_status || []).map((s: any) => ({
       status: s.status,
       count: s.count,
       color: statusColors[s.status.toLowerCase()] || "#cbd5e1",
     })),
-    recentActivity: [], // Mocked empty for now
+    recentActivity: [],
   };
 };
 
@@ -372,6 +366,105 @@ export const subscriptionApi = {
 
   cancel: async (workspaceId: string): Promise<void> => {
     await apiClient.post("/api/subscriptions/cancel", { workspace_id: workspaceId });
+  },
+};
+
+// ==========================================
+// Onboarding API
+// ==========================================
+
+import type { ScrapedData, WorkspaceProfile, Competitor } from "@/types";
+
+export const onboardingApi = {
+  scrapeUrl: async (url: string): Promise<{ scraped_data: ScrapedData }> => {
+    const { data } = await apiClient.post<ApiResponse<{ scraped_data: ScrapedData }>>(
+      "/api/onboarding/scrape",
+      { url }
+    );
+    return data.data;
+  },
+
+  generateDescription: async (
+    scraped_data: Record<string, any>,
+    company_url: string
+  ): Promise<{ description: string }> => {
+    const { data } = await apiClient.post<ApiResponse<{ description: string }>>(
+      "/api/onboarding/generate-description",
+      { scraped_data, company_url }
+    );
+    return data.data;
+  },
+
+  getProfile: async (): Promise<{ profile: WorkspaceProfile | null }> => {
+    const { data } = await apiClient.get<ApiResponse<{ profile: WorkspaceProfile | null }>>(
+      "/api/onboarding/profile"
+    );
+    return data.data;
+  },
+
+  upsertProfile: async (
+    payload: Partial<Omit<WorkspaceProfile, "id" | "workspace_id" | "created_at" | "updated_at" | "onboarding_completed">>
+  ): Promise<{ profile: WorkspaceProfile }> => {
+    const { data } = await apiClient.post<ApiResponse<{ profile: WorkspaceProfile }>>(
+      "/api/onboarding/profile",
+      payload
+    );
+    return data.data;
+  },
+
+  completeOnboarding: async (): Promise<{ profile: WorkspaceProfile }> => {
+    const { data } = await apiClient.post<ApiResponse<{ profile: WorkspaceProfile }>>(
+      "/api/onboarding/complete"
+    );
+    return data.data;
+  },
+
+  identifyCompetitors: async (
+    company_url: string,
+    company_name: string,
+    description: string
+  ): Promise<{ competitors: Array<{ name: string; url: string; description: string }> }> => {
+    const { data } = await apiClient.post<
+      ApiResponse<{ competitors: Array<{ name: string; url: string; description: string }> }>
+    >("/api/onboarding/identify-competitors", {
+      company_url,
+      company_name,
+      description,
+    });
+    return data.data;
+  },
+};
+
+// ==========================================
+// Competitors API
+// ==========================================
+
+export const competitorsApi = {
+  create: async (payload: { name: string; url?: string; notes?: string }): Promise<{ competitor: Competitor }> => {
+    const { data } = await apiClient.post<ApiResponse<{ competitor: Competitor }>>(
+      "/api/competitors",
+      payload
+    );
+    return data.data;
+  },
+
+  list: async (): Promise<{ competitors: Competitor[] }> => {
+    const { data } = await apiClient.get<ApiResponse<{ competitors: Competitor[] }>>(
+      "/api/competitors"
+    );
+    return data.data;
+  },
+
+  update: async (id: string, payload: { name?: string; url?: string; notes?: string }): Promise<{ competitor: Competitor }> => {
+    const { data } = await apiClient.put<ApiResponse<{ competitor: Competitor }>>(
+      `/api/competitors/${id}`,
+      payload
+    );
+    return data.data;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await apiClient.delete(`/api/competitors/${id}`);
   },
 };
 

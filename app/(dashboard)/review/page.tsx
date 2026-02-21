@@ -63,13 +63,7 @@ const statusConfig: Record<
   },
 };
 
-const verticalIcons: Record<string, string> = {
-  Finance: "\u{1F3E6}",
-  Energy: "\u26A1",
-  Technology: "\u{1F4BB}",
-  Health: "\u2764\uFE0F",
-  Marketing: "\u{1F4E2}",
-};
+
 
 function TableRowSkeleton() {
   return (
@@ -185,7 +179,7 @@ export default function ReviewQueuePage() {
           </Button>
           <Button variant="outline" className="gap-2 text-sm">
             <span className="text-muted-foreground">{"\u{1F4C1}"}</span>
-            Vertical
+            Category
           </Button>
           <Button variant="outline" className="gap-2 text-sm font-mono text-muted-foreground">
             <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -217,7 +211,7 @@ export default function ReviewQueuePage() {
                   Status
                 </TableHead>
                 <TableHead className="py-3 px-6 text-xs font-semibold uppercase tracking-wider w-40">
-                  Vertical
+                  Category
                 </TableHead>
                 <TableHead className="py-3 px-6 text-xs font-semibold uppercase tracking-wider w-48">
                   Created Date
@@ -278,14 +272,9 @@ export default function ReviewQueuePage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="py-4 px-6">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">
-                            {verticalIcons[item.vertical?.name || ""] || "\u{1F4C4}"}
-                          </span>
-                          <span className="text-sm text-muted-foreground">
-                            {item.vertical?.name || item.vertical_id}
-                          </span>
-                        </div>
+                        <span className="text-sm text-muted-foreground">
+                          —
+                        </span>
                       </TableCell>
                       <TableCell className="py-4 px-6">
                         <span className="text-sm font-mono text-muted-foreground">

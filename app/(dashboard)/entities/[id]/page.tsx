@@ -31,13 +31,11 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { entitiesApi } from "@/lib/api/entities";
-import { verticalsApi } from "@/lib/api/verticals";
-import { Vertical } from "@/types";
 
 const entitySchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   type: z.string().min(2, "Type is required"),
-  vertical_id: z.string().optional(),
+
   aliases: z.string().optional(), // Comma separated
   description: z.string().optional(), // Mapped to properties.description
 });
@@ -54,11 +52,7 @@ export default function EntityFormPage({
   const isEditing = params.id !== "new";
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch verticals for populate select
-  const { data: verticalsData } = useQuery({
-    queryKey: ["verticals"],
-    queryFn: () => verticalsApi.list(),
-  });
+
 
   // Fetch entity data if editing
   const { data: entityData, isLoading: isFetchingEntity } = useQuery({
@@ -72,7 +66,7 @@ export default function EntityFormPage({
     defaultValues: {
       name: "",
       type: "",
-      vertical_id: "",
+
       aliases: "",
       description: "",
     },
@@ -85,7 +79,7 @@ export default function EntityFormPage({
       form.reset({
         name: entity.name,
         type: entity.type || "",
-        vertical_id: entity.vertical_id || "",
+
         aliases: entity.aliases?.join(", ") || "",
         description: entity.properties?.description || "",
       });
@@ -136,7 +130,7 @@ export default function EntityFormPage({
     const payload = {
       name: data.name,
       type: data.type,
-      vertical_id: data.vertical_id || undefined,
+
       aliases: data.aliases
         ? data.aliases.split(",").map((s) => s.trim()).filter(Boolean)
         : [],
@@ -235,34 +229,7 @@ export default function EntityFormPage({
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="vertical_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Vertical</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a vertical" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {verticalsData?.data.map((vertical: Vertical) => (
-                          <SelectItem key={vertical.id} value={vertical.id}>
-                            {vertical.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+
             </div>
 
             <FormField

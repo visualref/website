@@ -53,37 +53,13 @@ export interface AuthResponse {
 }
 
 // ==========================================
-// Verticals
-// ==========================================
-
-export interface Vertical {
-  id: string;
-  name: string;
-  domain?: string;
-  content_style?: Record<string, any>;
-  posting_schedule?: Record<string, any>;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CreateVerticalPayload {
-  name: string;
-  domain?: string;
-  content_style?: Record<string, any>;
-  posting_schedule?: Record<string, any>;
-}
-
-export interface UpdateVerticalPayload extends Partial<CreateVerticalPayload> { }
-
-// ==========================================
 // Topics
 // ==========================================
 
 export interface Topic {
   id: string;
   title: string; // Mapped from query
-  vertical_id: string;
-  vertical?: Vertical;
+  workspace_id: string;
   status: string; // 'new', 'processing', 'completed'
   volume?: number;
   difficulty?: number;
@@ -95,7 +71,6 @@ export interface Topic {
 }
 
 export interface CreateTopicPayload {
-  client_id: string;
   title: string;
   target_keywords: string[];
   content_type: ContentType;
@@ -112,14 +87,7 @@ export interface ContentItem {
   id: string;
   title: string; // topic_text
   status: string; // ContentStatus enum or string from backend
-  vertical_id: string;
-  vertical?: Vertical;
-  // wordCount: number; // Removed from backend? checking schema... ContentItem does not have wordCount. Draft string has length.
-  // createdAt: string;
-  // updatedAt: string;
-  // assignee?: User;
-  // priority: Priority; // Not in ContentItem schema? Topic has priority?
-  // I will leave them for now but optional if they are not in backend response.
+  workspace_id: string;
   created_at: string;
   updated_at: string;
   word_count?: number;
@@ -183,8 +151,7 @@ export interface Entity {
   id: string;
   name: string;
   type?: string;
-  vertical_id?: string;
-  vertical?: Vertical;
+  workspace_id?: string;
   aliases?: string[];
   properties?: Record<string, any>;
   citation_count: number;
@@ -195,7 +162,7 @@ export interface Entity {
 export interface CreateEntityPayload {
   name: string;
   type: string;
-  vertical_id?: string;
+  workspace_id?: string;
   aliases?: string[];
   properties?: Record<string, any>;
 }
@@ -255,6 +222,55 @@ export interface ActivityItem {
 }
 
 // ==========================================
+// Onboarding / Workspace Profile
+// ==========================================
+
+export interface ScrapedData {
+  company_name: string;
+  description: string;
+  colors: string[];
+  favicon_url: string;
+  og_image: string;
+  meta: {
+    title: string;
+    og_title: string;
+    og_description: string;
+    meta_description: string;
+  };
+}
+
+export interface WorkspaceProfile {
+  id: string;
+  workspace_id: string;
+  company_url?: string;
+  scraped_data?: ScrapedData;
+  language: string;
+  description?: string;
+  target_audience: string[];
+  brand_colors?: Record<string, string>;
+  example_article?: string;
+  onboarding_completed: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Competitor {
+  id: string;
+  workspace_id: string;
+  name: string;
+  url?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SuggestedCompetitor {
+  name: string;
+  url: string;
+  description: string;
+}
+
+// ==========================================
 // API Generic
 // ==========================================
 
@@ -273,7 +289,6 @@ export interface PaginatedResponse<T> {
 
 export interface QueryFilters {
   status?: ContentStatus;
-  vertical?: string;
   search?: string;
   page?: number;
   limit?: number;

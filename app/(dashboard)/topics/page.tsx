@@ -47,7 +47,7 @@ export default function TopicsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Title</TableHead>
-              <TableHead>Vertical</TableHead>
+
               <TableHead>Status</TableHead>
               <TableHead>Created At</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -78,7 +78,7 @@ export default function TopicsPage() {
                       {topic.title}
                     </Link>
                   </TableCell>
-                  <TableCell>{topic.vertical?.name || "-"}</TableCell>
+
                   <TableCell>
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                       {topic.status}
