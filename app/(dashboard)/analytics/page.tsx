@@ -162,10 +162,16 @@ export default function AnalyticsPage() {
                   />
                   <Legend
                     formatter={(value, entry: any) => {
-                      const item = overview.statusDistribution[entry.payload.index];
+                      const item: StatusDistributionItem | undefined =
+                        entry?.payload ?? overview.statusDistribution.find(
+                          (i) => i.status === value
+                        );
+                      const label = item?.status
+                        ? item.status.replace(/_/g, " ")
+                        : String(value);
                       return (
                         <span className="text-sm font-medium ml-2">
-                          {item.status.replace("_", " ")} ({item.count})
+                          {label} {item?.count !== undefined ? `(${item.count})` : ""}
                         </span>
                       );
                     }}
