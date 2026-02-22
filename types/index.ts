@@ -40,6 +40,8 @@ export interface User {
     name: string;
     slug: string;
   };
+  onboarding_status?: string;
+  onboarding_completed?: boolean;
 }
 
 export interface LoginCredentials {
@@ -250,6 +252,7 @@ export interface WorkspaceProfile {
   brand_colors?: Record<string, string>;
   example_article?: string;
   onboarding_completed: boolean;
+  onboarding_step?: string;
   created_at: string;
   updated_at: string;
 }

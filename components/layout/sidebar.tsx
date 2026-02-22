@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -17,35 +19,55 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/hooks/use-auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/topics", label: "Topics", icon: FileText },
-  { href: "/review", label: "Review Queue", icon: ClipboardCheck, badge: 12 },
-  { href: "/company-profile", label: "Company Profile", icon: Building2 },
-  { href: "/entities", label: "Entities", icon: Users },
-  { href: "/distributions", label: "Distributions", icon: Sparkles },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
-];
+import apiClient from '@/lib/api-client';
 
 const systemItems = [
-  { href: "/billing", label: "Billing", icon: CreditCard },
-  { href: "/settings", label: "Settings", icon: Settings },
-  { href: "/team", label: "Team Management", icon: Users },
+  { href: '/billing', label: 'Billing', icon: CreditCard },
+  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/team', label: 'Team Management', icon: Users },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
+  const [reviewCount, setReviewCount] = useState(0);
+
+  useEffect(() => {
+    async function fetchReviewCount() {
+      try {
+        const { data } = await apiClient.get('/api/analytics/overview');
+        setReviewCount(data?.data?.in_review ?? 0);
+      } catch {
+        // Silently fail — badge just won't show
+      }
+    }
+    if (user?.workspace_id) {
+      fetchReviewCount();
+    }
+  }, [user?.workspace_id]);
+
+  const navItems = [
+    { href: "/", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/topics", label: "Topics", icon: FileText },
+    { href: "/review", label: "Review Queue", icon: ClipboardCheck, badge: reviewCount || undefined },
+    { href: "/company-profile", label: "Company Profile", icon: Building2 },
+    { href: "/entities", label: "Entities", icon: Users },
+    { href: "/distributions", label: "Distributions", icon: Sparkles },
+    { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  ];
 
   return (
     <aside className="w-64 h-full bg-card border-r border-border flex flex-col shrink-0">
       {/* Logo */}
       <div className="h-16 flex items-center px-6 border-b border-border">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-400 flex items-center justify-center mr-3">
-          <Sparkles className="h-4 w-4 text-white" />
-        </div>
-        <span className="text-lg font-bold tracking-tight">ContentIQ</span>
+        <Image
+          src="/visualref.png"
+          alt="Visualref"
+          width={32}
+          height={32}
+          className="mr-3 rounded-lg"
+        />
+        <span className="text-lg font-bold tracking-tight">Visualref</span>
       </div>
 
       {/* Navigation */}
@@ -137,7 +159,7 @@ export function Sidebar() {
               {user?.name || "User"}
             </p>
             <p className="text-xs text-muted-foreground truncate">
-              {user?.email || "user@contentiq.io"}
+              {user?.email || ""}
             </p>
           </div>
           <button
