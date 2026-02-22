@@ -403,7 +403,7 @@ export const onboardingApi = {
   },
 
   upsertProfile: async (
-    payload: Partial<Omit<WorkspaceProfile, "id" | "workspace_id" | "created_at" | "updated_at" | "onboarding_completed">>
+    payload: Partial<Omit<WorkspaceProfile, "id" | "workspace_id" | "created_at" | "updated_at" | "onboarding_completed">> & { onboarding_step?: string }
   ): Promise<{ profile: WorkspaceProfile }> => {
     const { data } = await apiClient.post<ApiResponse<{ profile: WorkspaceProfile }>>(
       "/api/onboarding/profile",

@@ -104,6 +104,9 @@ const LANGUAGES = [
   { value: "sv", label: "Swedish" },
 ];
 
+const STEP_IDS = ['workspace', 'company', 'language', 'business', 'competitors', 'brand'] as const;
+type StepId = typeof STEP_IDS[number];
+
 const STEP_CONFIG = [
   { label: "Workspace", icon: <Building2 className="h-4 w-4" /> },
   { label: "Company", icon: <Globe className="h-4 w-4" /> },
@@ -129,13 +132,12 @@ function StepIndicator({
       {steps.map((step, index) => (
         <div key={index} className="flex items-center">
           <div
-            className={`flex items-center justify-center w-7 h-7 rounded-full border-2 transition-all duration-300 ${
-              index < currentStep
-                ? "bg-primary border-primary text-primary-foreground"
-                : index === currentStep
+            className={`flex items-center justify-center w-7 h-7 rounded-full border-2 transition-all duration-300 ${index < currentStep
+              ? "bg-primary border-primary text-primary-foreground"
+              : index === currentStep
                 ? "border-primary text-primary bg-primary/10"
                 : "border-border text-muted-foreground"
-            }`}
+              }`}
           >
             {index < currentStep ? (
               <CheckCircle2 className="h-3.5 w-3.5" />
@@ -145,9 +147,8 @@ function StepIndicator({
           </div>
           {index < steps.length - 1 && (
             <div
-              className={`w-6 h-0.5 mx-0.5 transition-all duration-300 ${
-                index < currentStep ? "bg-primary" : "bg-border"
-              }`}
+              className={`w-6 h-0.5 mx-0.5 transition-all duration-300 ${index < currentStep ? "bg-primary" : "bg-border"
+                }`}
             />
           )}
         </div>
@@ -188,6 +189,7 @@ export default function OnboardingPage() {
   const { user, setUser, reauthenticate } = useAuthStore();
   const [currentStep, setCurrentStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
 
   // Shared onboarding state
@@ -237,41 +239,157 @@ export default function OnboardingPage() {
   }, [watchedName, workspaceForm]);
 
   // ==========================================
-  // Step 0: Create Workspace
+  // Load persisted onboarding state on mount
+  // ==========================================
+  useEffect(() => {
+    async function loadOnboardingState() {
+      try {
+        // Only attempt to load if user already has a workspace
+        if (!user?.workspace_id) {
+          setIsInitializing(false);
+          return;
+        }
+
+        setWorkspaceId(user.workspace_id);
+
+        // Pre-populate workspace form from existing workspace
+        if (user.workspace) {
+          workspaceForm.setValue('name', user.workspace.name);
+          workspaceForm.setValue('slug', user.workspace.slug);
+        }
+
+        const { profile } = await onboardingApi.getProfile();
+        if (profile) {
+          // Determine which step to resume from
+          const step = (profile.onboarding_step ?? 'workspace') as string;
+          const stepIndex = STEP_IDS.indexOf(step as StepId);
+          if (step === 'complete') {
+            // Onboarding already completed — redirect to dashboard
+            router.push('/');
+            return;
+          } else if (stepIndex >= 0) {
+            setCurrentStep(stepIndex);
+          } else {
+            // Unknown step or no step — start from company (workspace already created)
+            setCurrentStep(1);
+          }
+
+          // Pre-populate all form fields from persisted profile
+          if (profile.company_url) {
+            companyForm.setValue('company_url', profile.company_url);
+          }
+          if (profile.scraped_data) {
+            setScrapedData(profile.scraped_data);
+            // Restore brand colors from scraped data if not explicitly set
+            if (profile.scraped_data.colors?.length > 0 && !profile.brand_colors) {
+              const restoredColors: Record<string, string> = { primary: '#137fec', secondary: '#f1f5f9' };
+              if (profile.scraped_data.colors[0]) restoredColors.primary = profile.scraped_data.colors[0];
+              if (profile.scraped_data.colors[1]) restoredColors.secondary = profile.scraped_data.colors[1];
+              setBrandColors(restoredColors);
+            }
+          }
+          if (profile.language) {
+            setSelectedLanguage(profile.language);
+          }
+          if (profile.description) {
+            descriptionForm.setValue('description', profile.description);
+          }
+          if (profile.target_audience?.length > 0) {
+            setTargetAudience(profile.target_audience);
+          }
+          if (profile.brand_colors) {
+            setBrandColors(profile.brand_colors);
+          }
+          if (profile.example_article) {
+            brandForm.setValue('example_article', profile.example_article);
+          }
+        } else {
+          // Profile doesn't exist yet but workspace does — start from company step
+          setCurrentStep(1);
+        }
+
+        // Load saved competitors
+        try {
+          const { competitors: saved } = await competitorsApi.list();
+          if (saved?.length > 0) {
+            setCompetitors(saved);
+            setHasIdentified(true);
+          }
+        } catch {
+          // No competitors yet — that's fine
+        }
+      } catch {
+        // First-time user or API error — start from step 0
+      }
+      setIsInitializing(false);
+    }
+    loadOnboardingState();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ==========================================
+  // Step 0: Create or Update Workspace
   // ==========================================
   const handleCreateWorkspace = async (data: WorkspaceForm) => {
     setIsLoading(true);
     try {
-      const response = await apiClient.post<
-        ApiResponse<{ workspace: { id: string; name: string; slug: string }; token?: string }>
-      >("/api/workspaces", {
-        name: data.name,
-        slug: data.slug,
-      });
-      const { workspace, token } = response.data.data;
-      setWorkspaceId(workspace.id);
+      const existingWorkspaceId = workspaceId || user?.workspace_id;
 
-      if (token) {
-        setToken(token);
-      }
-
-      if (user) {
-        setUser({
-          ...user,
-          workspace_id: workspace.id,
-          workspace: {
-            id: workspace.id,
-            name: workspace.name,
-            slug: workspace.slug,
-          },
+      if (existingWorkspaceId) {
+        // Update existing workspace
+        const response = await apiClient.put<
+          ApiResponse<{ workspace: { id: string; name: string; slug: string } }>
+        >(`/api/workspaces/${existingWorkspaceId}`, {
+          name: data.name,
         });
-        await reauthenticate();
+        const { workspace } = response.data.data;
+
+        if (user) {
+          setUser({
+            ...user,
+            workspace: {
+              id: workspace.id,
+              name: workspace.name,
+              slug: workspace.slug,
+            },
+          });
+        }
+
+        toast.success('Workspace updated successfully!');
+      } else {
+        // Create new workspace
+        const response = await apiClient.post<
+          ApiResponse<{ workspace: { id: string; name: string; slug: string }; token?: string }>
+        >('/api/workspaces', {
+          name: data.name,
+          slug: data.slug,
+        });
+        const { workspace, token } = response.data.data;
+        setWorkspaceId(workspace.id);
+
+        if (token) {
+          setToken(token);
+        }
+
+        if (user) {
+          setUser({
+            ...user,
+            workspace_id: workspace.id,
+            workspace: {
+              id: workspace.id,
+              name: workspace.name,
+              slug: workspace.slug,
+            },
+          });
+          await reauthenticate();
+        }
+
+        toast.success('Workspace created successfully!');
       }
 
-      toast.success("Workspace created successfully!");
       setCurrentStep(1);
     } catch {
-      toast.error("Failed to create workspace. Please try again.");
+      toast.error('Failed to save workspace. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -281,8 +399,14 @@ export default function OnboardingPage() {
   // Step 1: Scrape Company URL
   // ==========================================
   const handleScrapeUrl = async () => {
-    const url = companyForm.getValues("company_url");
+    let url = companyForm.getValues("company_url");
     if (!url) return;
+
+    // Auto-prepend https:// if no protocol is specified
+    if (!/^https?:\/\//i.test(url)) {
+      url = `https://${url}`;
+      companyForm.setValue('company_url', url);
+    }
 
     setIsScraping(true);
     try {
@@ -311,6 +435,7 @@ export default function OnboardingPage() {
       await onboardingApi.upsertProfile({
         company_url: companyForm.getValues("company_url") || undefined,
         scraped_data: scrapedData ?? undefined,
+        onboarding_step: 'language',
       });
       setCurrentStep(2);
     } catch {
@@ -326,7 +451,10 @@ export default function OnboardingPage() {
   const handleLanguageNext = async () => {
     setIsLoading(true);
     try {
-      await onboardingApi.upsertProfile({ language: selectedLanguage });
+      await onboardingApi.upsertProfile({
+        language: selectedLanguage,
+        onboarding_step: 'business',
+      });
       setCurrentStep(3);
     } catch {
       toast.error("Failed to save language preference.");
@@ -385,6 +513,7 @@ export default function OnboardingPage() {
       await onboardingApi.upsertProfile({
         description: data.description,
         target_audience: targetAudience,
+        onboarding_step: 'competitors',
       });
       setCurrentStep(4);
     } catch {
@@ -477,8 +606,18 @@ export default function OnboardingPage() {
     }
   };
 
-  const handleCompetitorsNext = () => {
-    setCurrentStep(5);
+  const handleCompetitorsNext = async () => {
+    setIsLoading(true);
+    try {
+      await onboardingApi.upsertProfile({
+        onboarding_step: 'brand',
+      });
+      setCurrentStep(5);
+    } catch {
+      toast.error("Failed to save progress.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // ==========================================
@@ -492,14 +631,32 @@ export default function OnboardingPage() {
         example_article: data.example_article || undefined,
       });
       await onboardingApi.completeOnboarding();
-      toast.success("Onboarding complete! Welcome aboard.");
-      router.push("/");
+
+      // Reauthenticate to update user state with onboarding_completed: true
+      // This prevents the dashboard layout from redirecting back to onboarding
+      await reauthenticate();
+
+      toast.success('Onboarding complete! Welcome aboard.');
+      router.push('/');
     } catch {
-      toast.error("Failed to complete onboarding.");
+      toast.error('Failed to complete onboarding.');
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (isInitializing) {
+    return (
+      <main className="w-full max-w-lg p-6 z-10 relative">
+        <div className="flex flex-col items-center justify-center py-20 space-y-4">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg shadow-primary/20 animate-pulse">
+            <Sparkles className="h-6 w-6 text-white" />
+          </div>
+          <p className="text-sm text-muted-foreground">Resuming your setup...</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="w-full max-w-lg p-6 z-10 relative">

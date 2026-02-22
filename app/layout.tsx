@@ -10,9 +10,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "ContentIQ — Content Intelligence Platform",
+  title: "Visualref — Content Intelligence Platform",
   description:
     "AI-powered content intelligence dashboard for generating, reviewing, and managing content at scale.",
+  icons: {
+    icon: "/visualref.png",
+  },
 };
 
 export default function RootLayout({

@@ -1,7 +1,7 @@
-import { create } from "zustand";
-import { authApi } from "@/lib/api-client";
-import { setToken, removeToken, getToken } from "@/lib/auth";
-import type { User, LoginCredentials } from "@/types";
+import { create } from 'zustand';
+import { authApi } from '@/lib/api-client';
+import { setToken, removeToken, getToken } from '@/lib/auth';
+import type { User, LoginCredentials } from '@/types';
 
 interface AuthState {
   user: User | null;
@@ -16,25 +16,30 @@ interface AuthState {
   reauthenticate: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+/**
+ * Derive whether the user needs onboarding from the user object.
+ * A user needs onboarding if they have no workspace OR haven't completed onboarding.
+ */
+function computeNeedsOnboarding(user: User | null): boolean {
+  if (!user) return false;
+  return !user.workspace_id || !user.onboarding_completed;
+}
+
+export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
   isLoading: true,
-  get needsOnboarding() {
-    const user = get().user;
-    return !!user && !user.workspace_id;
-  },
+  needsOnboarding: false,
 
   reauthenticate: async () => {
     try {
       const token = getToken();
       if (token) {
         const user = await authApi.getMe(token);
-        set({ user });
+        set({ user, needsOnboarding: computeNeedsOnboarding(user) });
       }
     } catch (error) {
-      console.error("Re-authentication failed:", error);
-      // Don't log out, just fail gracefully
+      console.error('Re-authentication failed:', error);
     }
   },
 
@@ -42,9 +47,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const response = await authApi.login(credentials);
       setToken(response.token);
-      set({ user: response.user, isAuthenticated: true });
+      set({
+        user: response.user,
+        isAuthenticated: true,
+        needsOnboarding: computeNeedsOnboarding(response.user),
+      });
     } catch (error) {
-      console.error("Login failed:", error);
+      console.error('Login failed:', error);
       throw error;
     }
   },
@@ -53,9 +62,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const response = await authApi.register(data);
       setToken(response.token);
-      set({ user: response.user, isAuthenticated: true });
+      set({
+        user: response.user,
+        isAuthenticated: true,
+        needsOnboarding: computeNeedsOnboarding(response.user),
+      });
     } catch (error) {
-      console.error("Registration failed:", error);
+      console.error('Registration failed:', error);
       throw error;
     }
   },
@@ -67,24 +80,32 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Ignore API errors on logout
     }
     removeToken();
-    set({ user: null, isAuthenticated: false });
+    set({ user: null, isAuthenticated: false, needsOnboarding: false });
   },
 
   checkAuth: async () => {
     const token = getToken();
     if (!token) {
-      set({ isAuthenticated: false, isLoading: false });
+      set({ isAuthenticated: false, isLoading: false, needsOnboarding: false });
       return;
     }
     try {
       const user = await authApi.getMe(token);
-      set({ user, isAuthenticated: true, isLoading: false });
+      set({
+        user,
+        isAuthenticated: true,
+        isLoading: false,
+        needsOnboarding: computeNeedsOnboarding(user),
+      });
     } catch {
-      // Token invalid or API error - log out
       removeToken();
-      set({ user: null, isAuthenticated: false, isLoading: false });
+      set({ user: null, isAuthenticated: false, isLoading: false, needsOnboarding: false });
     }
   },
 
-  setUser: (user: User) => set({ user }),
+  setUser: (user: User) => set({
+    user,
+    needsOnboarding: computeNeedsOnboarding(user),
+  }),
 }));
+
