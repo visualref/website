@@ -384,23 +384,19 @@ export default function ContentDetailPage() {
                 Content Score
               </span>
               <span className="text-sm font-bold text-green-500">
-                {content.quality_score ?? 0}/100
+                {content.quality_score ?? 0}/10
               </span>
             </div>
             <div className="w-full bg-secondary rounded-full h-1.5">
               <div
                 className="bg-green-500 h-1.5 rounded-full"
-                style={{ width: `${content.quality_score ?? 0}%` }}
+                style={{ width: `${(content.quality_score ?? 0)*10}%` }}
               />
             </div>
             <div className="mt-3 text-xs text-muted-foreground space-y-1">
               <p className="flex items-center gap-1">
                 <CheckCircle className="h-2.5 w-2.5 text-green-500" />
                 Readability is good
-              </p>
-              <p className="flex items-center gap-1">
-                <AlertTriangle className="h-2.5 w-2.5 text-yellow-500" />
-                Keyword density low
               </p>
             </div>
           </div>
