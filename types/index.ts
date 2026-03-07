@@ -70,6 +70,7 @@ export interface Topic {
   priority?: Priority;
   createdAt: string;
   updatedAt: string;
+  contentItemId?: string;
 }
 
 export interface CreateTopicPayload {
@@ -77,9 +78,26 @@ export interface CreateTopicPayload {
   target_keywords: string[];
   content_type: ContentType;
   priority: Priority;
+  createdAt?: string;
 }
 
-export interface UpdateTopicPayload extends Partial<CreateTopicPayload> { }
+export interface UpdateTopicPayload extends Partial<CreateTopicPayload> {
+  createdAt?: string; // ISO string 
+}
+
+// ==========================================
+// Calendar Blog
+// ==========================================
+
+export type CalendarBlogStatus = 'scheduled' | 'generating' | 'in_review' | 'published' | 'new' | 'failed';
+
+export interface CalendarBlog {
+  id: string;
+  title: string;
+  scheduledDate: string; // ISO date string (YYYY-MM-DD)
+  status: CalendarBlogStatus;
+  contentItemId?: string; // link to ContentItem once generated
+}
 
 // ==========================================
 // Content

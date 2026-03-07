@@ -6,7 +6,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  FileText,
+  CalendarDays,
   ClipboardCheck,
   BarChart3,
   Settings,
@@ -15,6 +15,7 @@ import {
   Sparkles,
   CreditCard,
   Building2,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/hooks/use-auth";
@@ -48,11 +49,11 @@ export function Sidebar() {
 
   const navItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/topics", label: "Topics", icon: FileText },
+    { href: "/topics", label: "Content Calendar", icon: CalendarDays },
     { href: "/review", label: "Review Queue", icon: ClipboardCheck, badge: reviewCount || undefined },
     { href: "/company-profile", label: "Company Profile", icon: Building2 },
     { href: "/entities", label: "Entities", icon: Users },
-    { href: "/distributions", label: "Distributions", icon: Sparkles },
+    { href: "/reddit-bot", label: "Reddit Bot", icon: Bot },
     { href: "/analytics", label: "Analytics", icon: BarChart3 },
   ];
 

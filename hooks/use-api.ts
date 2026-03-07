@@ -115,6 +115,21 @@ export function useRejectContent() {
   });
 }
 
+export function useGenerateContent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (topicId: string) => contentApi.generate(topicId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["topics"] });
+      queryClient.invalidateQueries({ queryKey: ["content"] });
+      toast.success("Blog generation started successfully!");
+    },
+    onError: () => {
+      toast.error("Failed to start blog generation");
+    },
+  });
+}
+
 export function useRequestChanges() {
   const queryClient = useQueryClient();
   return useMutation({

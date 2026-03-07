@@ -12,6 +12,7 @@ import {
   ChevronRight,
   MoreVertical,
   Settings,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,8 +27,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ContentStatus } from "@/types";
-import { useContentList } from "@/hooks/use-api";
+import { ContentStatus, ContentType, Priority } from "@/types";
+import { useContentList, useCreateTopic, useGenerateContent } from "@/hooks/use-api";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
 
 const statusConfig: Record<
   string,
@@ -100,9 +117,55 @@ export default function ReviewQueuePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newDate, setNewDate] = useState("");
+
+  const createTopicMutation = useCreateTopic();
+  const generateMutation = useGenerateContent();
+
+  const handleCreateAndGenerate = () => {
+    if (!newTitle.trim()) {
+      toast.error("Please enter a title");
+      return;
+    }
+    
+    let createdAt: string | undefined = undefined;
+    if (newDate) {
+      createdAt = new Date(newDate).toISOString();
+    }
+
+    createTopicMutation.mutate(
+      {
+        title: newTitle,
+        target_keywords: [],
+        content_type: ContentType.ARTICLE,
+        priority: Priority.MEDIUM,
+        createdAt,
+      },
+      {
+        onSuccess: (newTopic) => {
+          toast.success("Topic created! Triggering generation...");
+          
+          generateMutation.mutate(newTopic.id, {
+            onSuccess: () => {
+              toast.success("Content generation started successfully!");
+              setIsModalOpen(false);
+              setNewTitle("");
+              setNewDate("");
+              setCurrentPage(1);
+            }
+          });
+        }
+      }
+    );
+  };
 
   const { data: contentResponse, isLoading, isError } = useContentList({
     search: searchQuery || undefined,
+    status: statusFilter !== "ALL" ? (statusFilter as any) : undefined,
     page: currentPage,
     limit: pageSize,
   });
@@ -145,7 +208,7 @@ export default function ReviewQueuePage() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button className="gap-2 shadow-lg shadow-primary/20">
+          <Button className="gap-2 shadow-lg shadow-primary/20" onClick={() => setIsModalOpen(true)}>
             <Plus className="h-4 w-4" />
             New Content
           </Button>
@@ -170,25 +233,26 @@ export default function ReviewQueuePage() {
 
         {/* Filter Controls */}
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-          <Button variant="outline" className="gap-2 text-sm">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            Status
-            <Badge variant="secondary" className="bg-primary/20 text-primary text-xs px-1.5 py-0 font-bold">
-              2
-            </Badge>
-          </Button>
-          <Button variant="outline" className="gap-2 text-sm">
-            <span className="text-muted-foreground">{"\u{1F4C1}"}</span>
-            Category
-          </Button>
-          <Button variant="outline" className="gap-2 text-sm font-mono text-muted-foreground">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            Oct 01 - Oct 24
-          </Button>
-          <div className="h-6 w-px bg-border mx-1" />
-          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary">
-            <Settings className="h-4 w-4" />
-          </Button>
+          <Select 
+            value={statusFilter} 
+            onValueChange={(val) => { 
+              setStatusFilter(val); 
+              setCurrentPage(1); 
+            }}
+          >
+            <SelectTrigger className="w-[180px] bg-card border-border">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Statuses</SelectItem>
+              <SelectItem value={ContentStatus.DRAFT_READY}>Draft Ready</SelectItem>
+              <SelectItem value={ContentStatus.IN_REVIEW}>In Review</SelectItem>
+              <SelectItem value={ContentStatus.APPROVED}>Approved</SelectItem>
+              <SelectItem value={ContentStatus.PUBLISHED}>Published</SelectItem>
+              <SelectItem value={ContentStatus.NEEDS_REVISION}>Needs Revision</SelectItem>
+              <SelectItem value={ContentStatus.REJECTED}>Rejected</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -217,7 +281,7 @@ export default function ReviewQueuePage() {
                   Created Date
                 </TableHead>
                 <TableHead className="py-3 px-6 text-xs font-semibold uppercase tracking-wider w-48">
-                  Assignee
+                  Quality Score
                 </TableHead>
                 <TableHead className="py-3 px-6 w-24" />
               </TableRow>
@@ -241,8 +305,9 @@ export default function ReviewQueuePage() {
                 </TableRow>
               ) : (
                 items.map((item) => {
+                  const normalizedStatus = item.status?.toLowerCase();
                   const statusInfo =
-                    statusConfig[item.status] || statusConfig[ContentStatus.DRAFT_READY];
+                    statusConfig[normalizedStatus] || statusConfig[ContentStatus.DRAFT_READY];
                   return (
                     <TableRow
                       key={item.id}
@@ -254,7 +319,7 @@ export default function ReviewQueuePage() {
                       <TableCell className="py-4 px-6">
                         <div className="flex flex-col">
                           <span className="font-medium group-hover:text-primary transition-colors">
-                            {item.title}
+                            {(item as any).topic_text || item.title || item.id}
                           </span>
                           <span className="text-xs font-mono text-muted-foreground">
                             #ID-{item.id.padStart(4, "0")} ·{" "}
@@ -272,8 +337,8 @@ export default function ReviewQueuePage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="py-4 px-6">
-                        <span className="text-sm text-muted-foreground">
-                          —
+                        <span className="text-sm text-muted-foreground capitalize">
+                          {(item as any).content_type || "—"}
                         </span>
                       </TableCell>
                       <TableCell className="py-4 px-6">
@@ -283,8 +348,8 @@ export default function ReviewQueuePage() {
                       </TableCell>
                       <TableCell className="py-4 px-6">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground">
-                            Unassigned
+                          <span className="text-sm font-medium text-green-500">
+                            {(item as any).quality_score ? `${(item as any).quality_score}/10` : "N/A"}
                           </span>
                         </div>
                       </TableCell>
@@ -363,6 +428,52 @@ export default function ReviewQueuePage() {
           </div>
         </div>
       </div>
+
+      {/* Create Topic Modal */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-md bg-card">
+          <DialogHeader>
+            <DialogTitle>Create New Content</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Topic Title</Label>
+              <Input 
+                id="title"
+                placeholder="Enter a topic..." 
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="date">Scheduled Date (Optional)</Label>
+              <Input 
+                id="date"
+                type="date"
+                value={newDate}
+                onChange={(e) => setNewDate(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+            <Button 
+              onClick={handleCreateAndGenerate} 
+              disabled={createTopicMutation.isPending || generateMutation.isPending || !newTitle.trim()}
+              className="gap-2 shadow-lg shadow-primary/20"
+            >
+              {(createTopicMutation.isPending || generateMutation.isPending) ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                "Create & Generate"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

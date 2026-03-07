@@ -108,13 +108,19 @@ const mapTopic = (data: any, content?: any): Topic => ({
   keywords: data.target_keywords || [],
   createdAt: data.created_at,
   updatedAt: data.updated_at,
+  contentItemId: data.content_items?.[0]?.id || content?.id,
 });
 
 export const topicsApi = {
   create: async (payload: CreateTopicPayload): Promise<Topic> => {
+    let apiPayload: any = { ...payload };
+    if (apiPayload.createdAt) {
+      apiPayload.created_at = apiPayload.createdAt;
+      delete apiPayload.createdAt;
+    }
     const { data } = await apiClient.post<ApiResponse<any>>(
       "/api/topics",
-      payload
+      apiPayload
     );
     return mapTopic(data.data.topic || data.data);
   },
@@ -144,9 +150,14 @@ export const topicsApi = {
   },
 
   update: async (id: string, payload: UpdateTopicPayload): Promise<Topic> => {
+    const apiPayload: any = { ...payload };
+    if (apiPayload.createdAt) {
+      apiPayload.created_at = apiPayload.createdAt;
+      delete apiPayload.createdAt;
+    }
     const { data } = await apiClient.put<ApiResponse<any>>(
       `/api/topics/${id}`,
-      payload
+      apiPayload
     );
     return mapTopic(data.data);
   },
@@ -161,6 +172,13 @@ export const topicsApi = {
 // ==========================================
 
 export const contentApi = {
+  generate: async (topic_id: string): Promise<any> => {
+    const { data } = await apiClient.post<ApiResponse<any>>("/api/content/generate", {
+      topic_id,
+    });
+    return data.data;
+  },
+
   list: async (
     filters?: QueryFilters
   ): Promise<PaginatedResponse<ContentItem>> => {
@@ -226,11 +244,11 @@ export const contentApi = {
   },
 
   approve: async (id: string): Promise<void> => {
-    await apiClient.post(`/api/content/${id}/approve`);
+    await apiClient.post(`/api/content/${id}/approve`, {});
   },
 
   reject: async (id: string, reason: string): Promise<void> => {
-    await apiClient.post(`/api/content/${id}/reject`, { reason });
+    await apiClient.post(`/api/content/${id}/reject`, { feedback: reason });
   },
 
   requestChanges: async (id: string, feedback: string): Promise<void> => {
@@ -465,6 +483,39 @@ export const competitorsApi = {
 
   delete: async (id: string): Promise<void> => {
     await apiClient.delete(`/api/competitors/${id}`);
+  },
+};
+
+// ==========================================
+// Integrations API
+// ==========================================
+
+export const integrationsApi = {
+  get: async (): Promise<{ integrations: any[] }> => {
+    const { data } = await apiClient.get<ApiResponse<{ integrations: any[] }>>(
+      "/api/integrations"
+    );
+    return data.data;
+  },
+
+  verify: async (payload: { platform: string; credentials: any }): Promise<{ valid: boolean }> => {
+    const { data } = await apiClient.post<ApiResponse<{ valid: boolean }>>(
+      "/api/integrations/verify",
+      payload
+    );
+    return data.data;
+  },
+
+  save: async (payload: { platform: string; credentials: any }): Promise<{ integration: any }> => {
+    const { data } = await apiClient.post<ApiResponse<{ integration: any }>>(
+      "/api/integrations/save",
+      payload
+    );
+    return data.data;
+  },
+
+  delete: async (platform: string): Promise<void> => {
+    await apiClient.delete(`/api/integrations/${platform}`);
   },
 };
 

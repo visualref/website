@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -53,27 +53,12 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ContentStatus } from "@/types";
 
-const PLATFORMS = [
-  {
-    id: "wordpress",
-    label: "WordPress",
-    description: "Publish to your WordPress site",
-  },
-  {
-    id: "medium",
-    label: "Medium",
-    description: "Publish to Medium blog",
-  },
-  {
-    id: "webhook",
-    label: "Webhook",
-    description: "Send to custom webhook endpoint",
-  },
-] as const;
+import { integrationsApi } from "@/lib/api-client";
 
 function getStatusBadge(status: string) {
-  switch (status) {
-    case ContentStatus.APPROVED:
+  const normalizedStatus = status?.toLowerCase();
+  switch (normalizedStatus) {
+    case ContentStatus.APPROVED.toLowerCase():
       return (
         <Badge
           variant="outline"
@@ -82,7 +67,7 @@ function getStatusBadge(status: string) {
           Approved
         </Badge>
       );
-    case ContentStatus.REJECTED:
+    case ContentStatus.REJECTED.toLowerCase():
       return (
         <Badge
           variant="outline"
@@ -91,7 +76,7 @@ function getStatusBadge(status: string) {
           Rejected
         </Badge>
       );
-    case ContentStatus.PUBLISHED:
+    case ContentStatus.PUBLISHED.toLowerCase():
       return (
         <Badge
           variant="outline"
@@ -100,7 +85,7 @@ function getStatusBadge(status: string) {
           Published
         </Badge>
       );
-    case ContentStatus.NEEDS_REVISION:
+    case ContentStatus.NEEDS_REVISION.toLowerCase():
       return (
         <Badge
           variant="outline"
@@ -109,7 +94,7 @@ function getStatusBadge(status: string) {
           Needs Revision
         </Badge>
       );
-    case ContentStatus.IN_REVIEW:
+    case ContentStatus.IN_REVIEW.toLowerCase():
     default:
       return (
         <Badge
@@ -131,6 +116,13 @@ export default function ContentDetailPage() {
   const [commentText, setCommentText] = useState("");
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [activeIntegrations, setActiveIntegrations] = useState<any[]>([]);
+
+  useEffect(() => {
+    integrationsApi.get().then((data) => {
+      setActiveIntegrations(data.integrations || []);
+    }).catch(console.error);
+  }, []);
 
   // Real API data
   const { data: content, isLoading, isError } = useContentDetail(id);
@@ -138,22 +130,20 @@ export default function ContentDetailPage() {
   // Mutations
   const approveMutation = useApproveContent();
   const rejectMutation = useRejectContent();
-  const requestChangesMutation = useRequestChanges();
   const distributeMutation = useDistributeContent();
 
   const handleApprove = () => {
-    approveMutation.mutate(id);
+    approveMutation.mutate(id, {
+      onSuccess: () => {
+        if (activeIntegrations.length > 0) {
+          setPublishDialogOpen(true);
+        }
+      }
+    });
   };
 
   const handleReject = () => {
     rejectMutation.mutate({ id, reason: "Rejected by reviewer" });
-  };
-
-  const handleRequestChanges = () => {
-    requestChangesMutation.mutate({
-      id,
-      feedback: "Changes requested by reviewer",
-    });
   };
 
   const handleSendComment = () => {
@@ -217,13 +207,16 @@ export default function ContentDetailPage() {
     );
   }
 
-  const isApproved = content.status === ContentStatus.APPROVED;
-  const isPublished = content.status === ContentStatus.PUBLISHED;
-  const isInReview = content.status === ContentStatus.IN_REVIEW;
+  const isApproved =
+    content.status === ContentStatus.APPROVED || content.status === "APPROVED";
+  const isPublished =
+    content.status === ContentStatus.PUBLISHED ||
+    content.status === "PUBLISHED";
+  const isInReview =
+    content.status === ContentStatus.IN_REVIEW || content.status === "REVIEW";
   const isMutating =
     approveMutation.isPending ||
-    rejectMutation.isPending ||
-    requestChangesMutation.isPending;
+    rejectMutation.isPending;
 
   return (
     <div className="h-screen flex flex-col overflow-hidden -m-8 -mt-8">
@@ -267,10 +260,9 @@ export default function ContentDetailPage() {
             <Button
               className="gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20"
               onClick={() => setPublishDialogOpen(true)}
-              disabled={isPublished}
             >
               <Upload className="h-4 w-4" />
-              {isPublished ? "Published" : "Publish"}
+              {isPublished ? "Republish" : "Publish"}
             </Button>
           )}
 
@@ -284,19 +276,9 @@ export default function ContentDetailPage() {
                 disabled={isMutating}
               >
                 {rejectMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                   <Loader2 className="h-4 w-4 animate-spin mr-1" />
                 ) : null}
                 Reject
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleRequestChanges}
-                disabled={isMutating}
-              >
-                {requestChangesMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                ) : null}
-                Request Changes
               </Button>
               <Button
                 className="shadow-lg shadow-primary/20 gap-2"
@@ -475,149 +457,7 @@ export default function ContentDetailPage() {
           <div className="h-20 shrink-0" />
         </section>
 
-        {/* Right Sidebar: Context */}
-        <aside className="w-80 bg-card border-l border-border flex flex-col shrink-0">
-          <Tabs defaultValue="comments" className="flex flex-col h-full">
-            <TabsList className="w-full rounded-none border-b border-border bg-transparent h-auto p-0">
-              <TabsTrigger
-                value="comments"
-                className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 py-3 text-sm"
-              >
-                Comments{" "}
-                <Badge className="ml-1 h-4 px-1.5 text-[10px] bg-primary text-white">
-                  {(content.comments || []).length}
-                </Badge>
-              </TabsTrigger>
-              <TabsTrigger
-                value="history"
-                className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 py-3 text-sm"
-              >
-                History
-              </TabsTrigger>
-            </TabsList>
 
-            <TabsContent value="comments" className="flex-1 flex flex-col m-0">
-              {/* Comments List */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                {(content.comments || []).map((comment) => (
-                  <div
-                    key={comment.id}
-                    className={cn(
-                      "flex gap-3",
-                      comment.resolved && "opacity-60"
-                    )}
-                  >
-                    <Avatar className="h-8 w-8 border border-border shrink-0">
-                      <AvatarImage src={comment.author.avatar} />
-                      <AvatarFallback className="text-[10px]">
-                        {comment.author.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="bg-accent/50 rounded-lg p-3 rounded-tl-none relative overflow-hidden">
-                        {comment.resolved && (
-                          <div className="absolute top-0 right-0 p-1 bg-green-500/20 rounded-bl text-green-500">
-                            <Check className="h-3 w-3" />
-                          </div>
-                        )}
-                        <div className="flex justify-between items-start mb-1">
-                          <span className="text-sm font-semibold">
-                            {comment.author.name}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {comment.resolved ? "1d ago" : "2h ago"}
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {comment.content}
-                        </p>
-                      </div>
-
-                      {/* Resolved tag */}
-                      {comment.resolved && (
-                        <p className="text-xs text-green-500 mt-1 ml-1 flex items-center gap-1">
-                          Resolved by You
-                        </p>
-                      )}
-
-                      {/* Replies */}
-                      {comment.replies?.map((reply) => (
-                        <div key={reply.id} className="flex gap-2 mt-3 ml-2">
-                          <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold shrink-0">
-                            ME
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm text-muted-foreground">
-                              <span className="font-medium text-primary">
-                                @{comment.author.name.split(" ")[0]}
-                              </span>{" "}
-                              {reply.content.replace(/@\w+\s*/g, "")}
-                            </p>
-                            <button className="text-xs text-muted-foreground underline mt-1 hover:text-primary">
-                              Reply
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Comment Input */}
-              <div className="p-4 border-t border-border">
-                <div className="relative">
-                  <Textarea
-                    className="bg-accent/50 border-border resize-none pr-20"
-                    placeholder="Add a comment... (Type @ to mention)"
-                    rows={3}
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                  />
-                  <div className="absolute bottom-2 right-2 flex items-center gap-2">
-                    <button className="p-1 text-muted-foreground hover:text-primary transition-colors">
-                      <AtSign className="h-4 w-4" />
-                    </button>
-                    <button
-                      className="bg-primary hover:bg-primary/90 text-white p-1.5 rounded-md transition-colors shadow-lg"
-                      onClick={handleSendComment}
-                    >
-                      <Send className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent
-              value="history"
-              className="flex-1 overflow-y-auto p-4 m-0"
-            >
-              <div className="space-y-4">
-                {(content.versions || []).map((version) => (
-                  <div key={version.id} className="flex gap-3">
-                    <div className="flex flex-col items-center">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold border border-primary/20">
-                        v{version.version}
-                      </div>
-                      <div className="w-px h-full bg-border mt-2" />
-                    </div>
-                    <div className="pb-4">
-                      <p className="text-sm font-medium">{version.summary}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        by {version.updatedBy.name} &middot;{" "}
-                        {new Date(version.updatedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </aside>
       </main>
 
       {/* Publish Dialog */}
@@ -634,38 +474,51 @@ export default function ContentDetailPage() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            <div className="space-y-3">
-              {PLATFORMS.map((platform) => (
-                <div
-                  key={platform.id}
-                  className={cn(
-                    "flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer",
-                    selectedPlatforms.includes(platform.id)
-                      ? "border-primary/50 bg-primary/5"
-                      : "border-border hover:border-border/80 hover:bg-accent/30"
-                  )}
-                  onClick={() => togglePlatform(platform.id)}
-                >
-                  <Checkbox
-                    id={platform.id}
-                    checked={selectedPlatforms.includes(platform.id)}
-                    onCheckedChange={() => togglePlatform(platform.id)}
-                    className="mt-0.5"
-                  />
-                  <div className="flex-1">
-                    <Label
-                      htmlFor={platform.id}
-                      className="text-sm font-medium cursor-pointer"
+            {activeIntegrations.length === 0 ? (
+              <div className="text-center py-6">
+                <p className="text-muted-foreground text-sm mb-4">No connected platforms found.</p>
+                <Button variant="outline" onClick={() => router.push('/settings')}>
+                  Configure Integrations
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {activeIntegrations.map((platform) => {
+                  const pId = platform.platform;
+                  const label = pId === "dev.to" ? "Dev.to" : pId.charAt(0).toUpperCase() + pId.slice(1);
+                  return (
+                    <div
+                      key={pId}
+                      className={cn(
+                        "flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer",
+                        selectedPlatforms.includes(pId)
+                          ? "border-primary/50 bg-primary/5"
+                          : "border-border hover:border-border/80 hover:bg-accent/30"
+                      )}
+                      onClick={() => togglePlatform(pId)}
                     >
-                      {platform.label}
-                    </Label>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {platform.description}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                      <Checkbox
+                        id={pId}
+                        checked={selectedPlatforms.includes(pId)}
+                        onCheckedChange={() => togglePlatform(pId)}
+                        className="mt-0.5"
+                      />
+                      <div className="flex-1">
+                        <Label
+                          htmlFor={pId}
+                          className="text-sm font-medium cursor-pointer"
+                        >
+                          {label}
+                        </Label>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Publish to {label}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             {selectedPlatforms.length > 0 && (
               <div className="rounded-lg bg-accent/30 border border-border/50 p-3">
