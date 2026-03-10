@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { topicsApi, contentApi, analyticsApi, workspacesApi } from "@/lib/api-client";
+import { topicsApi, contentApi, analyticsApi, workspacesApi, redditApi } from "@/lib/api-client";
 import type { CreateTopicPayload, UpdateTopicPayload, QueryFilters } from "@/types";
 import { toast } from "sonner";
 
@@ -196,5 +196,236 @@ export function useWorkspaceTopics(workspaceId: string, filters?: QueryFilters) 
     queryKey: ["workspaces", workspaceId, "topics", filters],
     queryFn: () => workspacesApi.listTopics(workspaceId, filters),
     enabled: !!workspaceId,
+  });
+}
+
+// ==========================================
+// Reddit Bot Hooks
+// ==========================================
+
+export function useRedditKeywords() {
+  return useQuery({
+    queryKey: ["reddit", "keywords"],
+    queryFn: () => redditApi.listKeywords(),
+  });
+}
+
+export function useAddRedditKeyword() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (keyword: string) => redditApi.addKeyword(keyword),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reddit", "keywords"] });
+      toast.success("Keyword added");
+    },
+    onError: () => {
+      toast.error("Failed to add keyword");
+    },
+  });
+}
+
+export function useRemoveRedditKeyword() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => redditApi.removeKeyword(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reddit", "keywords"] });
+      toast.success("Keyword removed");
+    },
+    onError: () => {
+      toast.error("Failed to remove keyword");
+    },
+  });
+}
+
+export function useSyncRedditKeywords() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => redditApi.syncKeywords(),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["reddit", "keywords"] });
+      toast.success(`Synced ${data.synced} keywords from topics`);
+    },
+    onError: () => {
+      toast.error("Failed to sync keywords");
+    },
+  });
+}
+
+export function useEditRedditKeyword() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, keyword }: { id: string; keyword: string }) =>
+      redditApi.editKeyword(id, keyword),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reddit", "keywords"] });
+      toast.success("Keyword updated");
+    },
+    onError: () => {
+      toast.error("Failed to update keyword");
+    },
+  });
+}
+
+export function useGenerateRedditKeywords() {
+  return useMutation({
+    mutationFn: (maxKeywords?: number) => redditApi.generateKeywords(maxKeywords),
+    onSuccess: (data) => {
+      toast.success(`Generated ${data.total} keyword suggestions`);
+    },
+    onError: () => {
+      toast.error("Failed to generate keywords");
+    },
+  });
+}
+
+export function useBulkAddRedditKeywords() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (keywords: string[]) => redditApi.bulkAddKeywords(keywords),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["reddit", "keywords"] });
+      toast.success(`Saved ${data.inserted} keywords`);
+    },
+    onError: () => {
+      toast.error("Failed to save keywords");
+    },
+  });
+}
+
+export function useRedditSubreddits() {
+  return useQuery({
+    queryKey: ["reddit", "subreddits"],
+    queryFn: () => redditApi.listSubreddits(),
+  });
+}
+
+export function useAddRedditSubreddit() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) => redditApi.addSubreddit(name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reddit", "subreddits"] });
+      toast.success("Subreddit added");
+    },
+    onError: () => {
+      toast.error("Failed to add subreddit");
+    },
+  });
+}
+
+export function useRemoveRedditSubreddit() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => redditApi.removeSubreddit(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reddit", "subreddits"] });
+      toast.success("Subreddit removed");
+    },
+    onError: () => {
+      toast.error("Failed to remove subreddit");
+    },
+  });
+}
+
+export function useToggleRedditSubreddit() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      redditApi.toggleSubreddit(id, isActive),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reddit", "subreddits"] });
+    },
+    onError: () => {
+      toast.error("Failed to update subreddit");
+    },
+  });
+}
+
+export function useEditRedditSubreddit() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, subredditName }: { id: string; subredditName: string }) =>
+      redditApi.editSubreddit(id, subredditName),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reddit", "subreddits"] });
+      toast.success("Subreddit updated");
+    },
+    onError: () => {
+      toast.error("Failed to update subreddit");
+    },
+  });
+}
+
+export function useGenerateRedditSubreddits() {
+  return useMutation({
+    mutationFn: (maxSubreddits: number = 10) => redditApi.generateSubreddits(maxSubreddits),
+    onError: () => {
+      toast.error("Failed to generate subreddits");
+    },
+  });
+}
+
+export function useBulkAddRedditSubreddits() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (subreddits: string[]) => redditApi.bulkAddSubreddits(subreddits),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["reddit", "subreddits"] });
+      toast.success(`Saved ${data.inserted} subreddits`);
+    },
+    onError: () => {
+      toast.error("Failed to save subreddits");
+    },
+  });
+}
+
+export function useRedditPosts(params: { page?: number; limit?: number; tab?: string; search?: string }) {
+  return useQuery({
+    queryKey: ["reddit", "posts", params],
+    queryFn: () => redditApi.listPosts(params),
+  });
+}
+
+export function useRedditStats() {
+  return useQuery({
+    queryKey: ["reddit", "stats"],
+    queryFn: () => redditApi.getStats(),
+  });
+}
+
+export function useRedditResponses(postId: string) {
+  return useQuery({
+    queryKey: ["reddit", "responses", postId],
+    queryFn: () => redditApi.getResponses(postId),
+    enabled: !!postId,
+  });
+}
+
+export function useApproveRedditResponse() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (responseId: string) => redditApi.approveResponse(responseId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reddit"] });
+      toast.success("Response approved");
+    },
+    onError: () => {
+      toast.error("Failed to approve response");
+    },
+  });
+}
+
+export function useRejectRedditResponse() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (responseId: string) => redditApi.rejectResponse(responseId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reddit"] });
+      toast.success("Response rejected");
+    },
+    onError: () => {
+      toast.error("Failed to reject response");
+    },
   });
 }

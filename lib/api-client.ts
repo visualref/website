@@ -519,4 +519,235 @@ export const integrationsApi = {
   },
 };
 
+// ==========================================
+// Reddit Bot API
+// ==========================================
+
+export interface RedditKeyword {
+  id: string;
+  keyword: string;
+  is_active: boolean;
+  crawled_at: string | null;
+  crawl_count: number;
+  last_result: { posts_matched?: number; subreddits_scanned?: number } | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RedditSubreddit {
+  id: string;
+  subreddit_name: string;
+  is_active: boolean;
+  crawled_at: string | null;
+  crawl_count: number;
+  last_result: { relevant?: number; posts_found?: number } | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RedditPost {
+  id: string;
+  reddit_post_id: string;
+  subreddit: string;
+  title: string;
+  body: string;
+  author: string;
+  url: string;
+  score: number;
+  num_comments: number;
+  created_utc: string;
+  matched_keyword: string | null;
+  relevance_score: number;
+  is_processed: boolean;
+  discovered_at: string;
+  created_at: string;
+}
+
+export interface RedditResponse {
+  id: string;
+  post_id: string;
+  generated_text: string;
+  final_text: string | null;
+  status: string;
+  reddit_comment_id: string | null;
+  posted_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RedditStats {
+  opportunities: number;
+  replied: number;
+  estimatedTraffic: number;
+}
+
+export const redditApi = {
+  // Keywords
+  listKeywords: async (): Promise<{ keywords: RedditKeyword[] }> => {
+    const { data } = await apiClient.get<ApiResponse<{ keywords: RedditKeyword[] }>>(
+      "/api/reddit/keywords"
+    );
+    return data.data;
+  },
+
+  addKeyword: async (keyword: string): Promise<{ keyword: RedditKeyword }> => {
+    const { data } = await apiClient.post<ApiResponse<{ keyword: RedditKeyword }>>(
+      "/api/reddit/keywords",
+      { keyword }
+    );
+    return data.data;
+  },
+
+  removeKeyword: async (id: string): Promise<void> => {
+    await apiClient.delete(`/api/reddit/keywords/${id}`);
+  },
+
+  toggleKeyword: async (id: string, is_active: boolean): Promise<{ keyword: RedditKeyword }> => {
+    const { data } = await apiClient.patch<ApiResponse<{ keyword: RedditKeyword }>>(
+      `/api/reddit/keywords/${id}/toggle`,
+      { is_active }
+    );
+    return data.data;
+  },
+
+  syncKeywords: async (): Promise<{ synced: number; total: number }> => {
+    const { data } = await apiClient.post<ApiResponse<{ synced: number; total: number }>>(
+      "/api/reddit/keywords/sync"
+    );
+    return data.data;
+  },
+
+  editKeyword: async (id: string, keyword: string): Promise<{ keyword: RedditKeyword }> => {
+    const { data } = await apiClient.put<ApiResponse<{ keyword: RedditKeyword }>>(
+      `/api/reddit/keywords/${id}`,
+      { keyword }
+    );
+    return data.data;
+  },
+
+  generateKeywords: async (max_keywords?: number): Promise<{ keywords: string[]; total: number }> => {
+    const { data } = await apiClient.post<ApiResponse<{ keywords: string[]; total: number }>>(
+      "/api/reddit/keywords/generate",
+      { max_keywords: max_keywords || 10 }
+    );
+    return data.data;
+  },
+
+  bulkAddKeywords: async (keywords: string[]): Promise<{ inserted: number; total: number }> => {
+    const { data } = await apiClient.post<ApiResponse<{ inserted: number; total: number }>>(
+      "/api/reddit/keywords/bulk",
+      { keywords }
+    );
+    return data.data;
+  },
+
+  // Subreddits
+  listSubreddits: async (): Promise<{ subreddits: RedditSubreddit[] }> => {
+    const { data } = await apiClient.get<ApiResponse<{ subreddits: RedditSubreddit[] }>>(
+      "/api/reddit/subreddits"
+    );
+    return data.data;
+  },
+
+  addSubreddit: async (subreddit_name: string): Promise<{ subreddit: RedditSubreddit }> => {
+    const { data } = await apiClient.post<ApiResponse<{ subreddit: RedditSubreddit }>>(
+      "/api/reddit/subreddits",
+      { subreddit_name }
+    );
+    return data.data;
+  },
+
+  removeSubreddit: async (id: string): Promise<void> => {
+    await apiClient.delete(`/api/reddit/subreddits/${id}`);
+  },
+
+  toggleSubreddit: async (id: string, is_active: boolean): Promise<{ subreddit: RedditSubreddit }> => {
+    const { data } = await apiClient.patch<ApiResponse<{ subreddit: RedditSubreddit }>>(
+      `/api/reddit/subreddits/${id}/toggle`,
+      { is_active }
+    );
+    return data.data;
+  },
+
+  editSubreddit: async (id: string, subreddit_name: string): Promise<{ subreddit: RedditSubreddit }> => {
+    const { data } = await apiClient.put<ApiResponse<{ subreddit: RedditSubreddit }>>(
+      `/api/reddit/subreddits/${id}`,
+      { subreddit_name }
+    );
+    return data.data;
+  },
+
+  generateSubreddits: async (maxSubreddits: number = 10): Promise<{
+    subreddits: Array<{ name: string; subscribers: number; description: string; active_users: number }>;
+    total: number;
+    rejected: number;
+  }> => {
+    const { data } = await apiClient.post<ApiResponse<{
+      subreddits: Array<{ name: string; subscribers: number; description: string; active_users: number }>;
+      total: number;
+      rejected: number;
+    }>>("/api/reddit/subreddits/generate", { max_subreddits: maxSubreddits });
+    return data.data;
+  },
+
+  bulkAddSubreddits: async (subreddits: string[]): Promise<{ inserted: number; total: number }> => {
+    const { data } = await apiClient.post<ApiResponse<{ inserted: number; total: number }>>(
+      "/api/reddit/subreddits/bulk",
+      { subreddits }
+    );
+    return data.data;
+  },
+
+  // Posts
+  listPosts: async (params: {
+    page?: number;
+    limit?: number;
+    tab?: string;
+    search?: string;
+  }): Promise<PaginatedResponse<RedditPost>> => {
+    const { data } = await apiClient.get<ApiResponse<PaginatedResponse<RedditPost>>>(
+      "/api/reddit/posts",
+      { params }
+    );
+    return data.data;
+  },
+
+  getStats: async (): Promise<RedditStats> => {
+    const { data } = await apiClient.get<ApiResponse<RedditStats>>(
+      "/api/reddit/posts/stats"
+    );
+    return data.data;
+  },
+
+  // Responses
+  getResponses: async (postId: string): Promise<{ responses: RedditResponse[] }> => {
+    const { data } = await apiClient.get<ApiResponse<{ responses: RedditResponse[] }>>(
+      `/api/reddit/posts/${postId}/responses`
+    );
+    return data.data;
+  },
+
+  updateResponse: async (responseId: string, final_text: string): Promise<{ response: RedditResponse }> => {
+    const { data } = await apiClient.put<ApiResponse<{ response: RedditResponse }>>(
+      `/api/reddit/responses/${responseId}`,
+      { final_text }
+    );
+    return data.data;
+  },
+
+  approveResponse: async (responseId: string): Promise<{ response: RedditResponse }> => {
+    const { data } = await apiClient.post<ApiResponse<{ response: RedditResponse }>>(
+      `/api/reddit/responses/${responseId}/approve`
+    );
+    return data.data;
+  },
+
+  rejectResponse: async (responseId: string): Promise<{ response: RedditResponse }> => {
+    const { data } = await apiClient.post<ApiResponse<{ response: RedditResponse }>>(
+      `/api/reddit/responses/${responseId}/reject`
+    );
+    return data.data;
+  },
+};
+
 export default apiClient;
