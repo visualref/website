@@ -37,6 +37,12 @@ const INTEGRATIONS_DEFS = [
     icon: Ghost,
     iconColor: "text-blue-500 dark:text-blue-400",
   },
+  {
+    id: "google_search_console",
+    name: "Google Search Console",
+    icon: Globe,
+    iconColor: "text-green-600 dark:text-green-400",
+  },
 ];
 
 export default function SettingsPage() {
@@ -58,6 +64,7 @@ export default function SettingsPage() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
 
   useEffect(() => {
     fetchIntegrations();
@@ -72,6 +79,17 @@ export default function SettingsPage() {
       toast.error("Failed to load integrations");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleConnectGoogle = async () => {
+    try {
+      setIsConnecting(true);
+      const { url } = await integrationsApi.getGoogleAuthUrl();
+      window.location.href = url;
+    } catch (error) {
+      toast.error("Failed to initiate connection to Google Search Console");
+      setIsConnecting(false);
     }
   };
 
@@ -183,11 +201,17 @@ export default function SettingsPage() {
                 return (
                   <Card 
                     key={integration.id}
-                    onClick={() => !isDisabled && handleOpenDialog(integration.id)}
+                    onClick={() => {
+                      if (integration.id === "google_search_console") {
+                        if (!isConfigured) handleConnectGoogle();
+                      } else if (!isDisabled) {
+                        handleOpenDialog(integration.id);
+                      }
+                    }}
                     className={cn(
                       "group relative overflow-hidden transition-all duration-300",
                       "bg-card/40 backdrop-blur-xl border-border/60 shadow-sm",
-                      isDisabled 
+                      isDisabled || (integration.id === "google_search_console" && isConfigured)
                         ? "opacity-60 cursor-not-allowed" 
                         : "cursor-pointer hover:shadow-lg hover:-translate-y-1 hover:border-primary/40 hover:bg-card/80",
                       isConfigured && "border-green-500/30"
@@ -205,7 +229,7 @@ export default function SettingsPage() {
                           <span className="font-semibold text-lg tracking-tight text-foreground/90">{integration.name}</span>
                         </div>
                         {isConfigured && (
-                          <div onClick={(e) => handleDelete(e, integration.id)} className="p-2 -mr-2 text-muted-foreground hover:text-red-500 transition-colors z-10 rounded-full hover:bg-red-500/10" title="Disconnect">
+                          <div onClick={(e) => handleDelete(e, integration.id)} className="p-2 -mr-2 text-muted-foreground hover:text-red-500 transition-colors z-10 rounded-full hover:bg-red-500/10 cursor-pointer" title="Disconnect">
                             {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                           </div>
                         )}
