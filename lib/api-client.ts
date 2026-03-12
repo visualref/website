@@ -575,10 +575,69 @@ export interface RedditResponse {
   updated_at: string;
 }
 
+export interface RedditQuery {
+  id: string;
+  query_text: string;
+  query_type: 'pain' | 'solution';
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClientProfile {
+  id: string;
+  workspace_id: string;
+  company_description: string;
+  ideal_customer_profile: string;
+  value_propositions: string[];
+  negative_signals: string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface RedditStats {
   opportunities: number;
   replied: number;
   estimatedTraffic: number;
+}
+
+export interface RawPost {
+  id: string;
+  post_id: string;
+  subreddit: string;
+  title: string;
+  body: string;
+  author: string;
+  url: string;
+  score: number;
+  num_comments: number;
+  created_utc: string;
+  source_channel: 'listing' | 'search';
+  matched_query: string | null;
+  status: string;
+  discovered_at: string;
+}
+
+export interface Lead {
+  id: string;
+  raw_post_id: string;
+  workspace_id: string;
+  similarity_score: number;
+  matched_keywords: string[];
+  source_channel: string;
+  status: 'new' | 'reviewed' | 'engaged' | 'dismissed';
+  created_at: string;
+  updated_at: string;
+  raw_posts: RawPost;
+}
+
+export interface LeadStats {
+  total: number;
+  new: number;
+  reviewed: number;
+  engaged: number;
+  dismissed: number;
 }
 
 export const redditApi = {
@@ -698,6 +757,98 @@ export const redditApi = {
     return data.data;
   },
 
+  // Search Queries
+  listQueries: async (): Promise<{ queries: RedditQuery[] }> => {
+    const { data } = await apiClient.get<ApiResponse<{ queries: RedditQuery[] }>>(
+      "/api/reddit/queries"
+    );
+    return data.data;
+  },
+
+  addQuery: async (query_text: string, query_type: 'pain' | 'solution'): Promise<{ query: RedditQuery }> => {
+    const { data } = await apiClient.post<ApiResponse<{ query: RedditQuery }>>(
+      "/api/reddit/queries",
+      { query_text, query_type }
+    );
+    return data.data;
+  },
+
+  removeQuery: async (id: string): Promise<void> => {
+    await apiClient.delete(`/api/reddit/queries/${id}`);
+  },
+
+  toggleQuery: async (id: string, is_active: boolean): Promise<{ query: RedditQuery }> => {
+    const { data } = await apiClient.patch<ApiResponse<{ query: RedditQuery }>>(
+      `/api/reddit/queries/${id}/toggle`,
+      { is_active }
+    );
+    return data.data;
+  },
+
+  editQuery: async (id: string, query_text: string): Promise<{ query: RedditQuery }> => {
+    const { data } = await apiClient.put<ApiResponse<{ query: RedditQuery }>>(
+      `/api/reddit/queries/${id}`,
+      { query_text }
+    );
+    return data.data;
+  },
+
+  generateQueries: async (max_queries: number = 20): Promise<{
+    pain_queries: string[];
+    solution_queries: string[];
+    total: number;
+  }> => {
+    const { data } = await apiClient.post<ApiResponse<{
+      pain_queries: string[];
+      solution_queries: string[];
+      total: number;
+    }>>("/api/reddit/queries/generate", { max_queries });
+    return data.data;
+  },
+
+  bulkAddQueries: async (queries: Array<{ text: string; type: 'pain' | 'solution' }>): Promise<{ inserted: number; total: number }> => {
+    const { data } = await apiClient.post<ApiResponse<{ inserted: number; total: number }>>(
+      "/api/reddit/queries/bulk",
+      { queries }
+    );
+    return data.data;
+  },
+
+  // Client Profile
+  getProfile: async (): Promise<{ profile: ClientProfile | null }> => {
+    const { data } = await apiClient.get<ApiResponse<{ profile: ClientProfile | null }>>(
+      "/api/reddit/profile"
+    );
+    return data.data;
+  },
+
+  generateProfile: async (): Promise<{
+    ideal_customer_profile: string;
+    value_propositions: string[];
+    negative_signals: string[];
+    embedding_dims: number;
+  }> => {
+    const { data } = await apiClient.post<ApiResponse<{
+      ideal_customer_profile: string;
+      value_propositions: string[];
+      negative_signals: string[];
+      embedding_dims: number;
+    }>>("/api/reddit/profile/generate");
+    return data.data;
+  },
+
+  updateProfile: async (updates: {
+    ideal_customer_profile?: string;
+    value_propositions?: string[];
+    negative_signals?: string[];
+  }): Promise<{ profile: ClientProfile }> => {
+    const { data } = await apiClient.put<ApiResponse<{ profile: ClientProfile }>>(
+      "/api/reddit/profile",
+      updates
+    );
+    return data.data;
+  },
+
   // Posts
   listPosts: async (params: {
     page?: number;
@@ -745,6 +896,57 @@ export const redditApi = {
   rejectResponse: async (responseId: string): Promise<{ response: RedditResponse }> => {
     const { data } = await apiClient.post<ApiResponse<{ response: RedditResponse }>>(
       `/api/reddit/responses/${responseId}/reject`
+    );
+    return data.data;
+  },
+
+  // Leads
+  listLeads: async (params: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    search?: string;
+  }): Promise<PaginatedResponse<Lead>> => {
+    const { data } = await apiClient.get<ApiResponse<PaginatedResponse<Lead>>>(
+      "/api/reddit/leads",
+      { params }
+    );
+    return data.data;
+  },
+
+  getLeadStats: async (): Promise<LeadStats> => {
+    const { data } = await apiClient.get<ApiResponse<LeadStats>>(
+      "/api/reddit/leads/stats"
+    );
+    return data.data;
+  },
+
+  updateLeadStatus: async (leadId: string, status: string): Promise<{ lead: Lead }> => {
+    const { data } = await apiClient.patch<ApiResponse<{ lead: Lead }>>(
+      `/api/reddit/leads/${leadId}/status`,
+      { status }
+    );
+    return data.data;
+  },
+
+  dismissLead: async (leadId: string): Promise<{ lead: Lead }> => {
+    const { data } = await apiClient.post<ApiResponse<{ lead: Lead }>>(
+      `/api/reddit/leads/${leadId}/dismiss`
+    );
+    return data.data;
+  },
+
+  // Processor + Search Scan triggers
+  triggerProcess: async (): Promise<{ processed: number; leads_created: number; dismissed: number }> => {
+    const { data } = await apiClient.post<ApiResponse<{ processed: number; leads_created: number; dismissed: number }>>(
+      "/api/reddit/process"
+    );
+    return data.data;
+  },
+
+  triggerSearchScan: async (): Promise<{ queriesSearched: number; postsInserted: number }> => {
+    const { data } = await apiClient.post<ApiResponse<{ queriesSearched: number; postsInserted: number }>>(
+      "/api/reddit/search-scan"
     );
     return data.data;
   },

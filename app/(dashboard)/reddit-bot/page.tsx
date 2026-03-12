@@ -49,8 +49,19 @@ import {
   useRemoveRedditSubreddit,
   useGenerateRedditSubreddits,
   useBulkAddRedditSubreddits,
-  useRedditPosts,
-  useRedditStats,
+  useRedditQueries,
+  useAddRedditQuery,
+  useRemoveRedditQuery,
+  useToggleRedditQuery,
+  useEditRedditQuery,
+  useGenerateRedditQueries,
+  useBulkAddRedditQueries,
+  useRedditLeads,
+  useRedditLeadStats,
+  useUpdateLeadStatus,
+  useDismissLead,
+  useTriggerProcess,
+  useTriggerSearchScan,
 } from "@/hooks/use-api";
 
 function formatTimeAgo(dateStr: string) {
@@ -63,8 +74,7 @@ function formatTimeAgo(dateStr: string) {
 }
 
 export default function RedditBotPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("opportunities");
+  const [activeTab, setActiveTab] = useState("leads");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [newKeyword, setNewKeyword] = useState("");
   const [newSubreddit, setNewSubreddit] = useState("");
@@ -76,14 +86,17 @@ export default function RedditBotPage() {
     Array<{ name: string; subscribers: number; description: string; active_users: number }>
   >([]);
   const [subredditReviewOpen, setSubredditReviewOpen] = useState(false);
+  const [newQueryText, setNewQueryText] = useState("");
+  const [newQueryType, setNewQueryType] = useState<'pain' | 'solution'>('pain');
+  const [editingQueryId, setEditingQueryId] = useState<string | null>(null);
+  const [editingQueryValue, setEditingQueryValue] = useState("");
+  const [suggestedQueries, setSuggestedQueries] = useState<Array<{ text: string; type: 'pain' | 'solution' }>>([]);
+  const [queryReviewOpen, setQueryReviewOpen] = useState(false);
+  const [leadsTab, setLeadsTab] = useState("new");
+  const [leadsPage, setLeadsPage] = useState(1);
+  const [leadsSearch, setLeadsSearch] = useState("");
 
   // Data hooks
-  const { data: statsData } = useRedditStats();
-  const { data: postsData, isLoading: postsLoading } = useRedditPosts({
-    tab: activeTab === "keywords" ? undefined : activeTab,
-    search: searchQuery || undefined,
-    limit: 20,
-  });
   const { data: keywordsData, isLoading: keywordsLoading } = useRedditKeywords();
   const { data: subredditsData } = useRedditSubreddits();
 
@@ -98,6 +111,24 @@ export default function RedditBotPage() {
   const removeSubreddit = useRemoveRedditSubreddit();
   const generateSubreddits = useGenerateRedditSubreddits();
   const bulkAddSubreddits = useBulkAddRedditSubreddits();
+  const { data: queriesData, isLoading: queriesLoading } = useRedditQueries();
+  const addQuery = useAddRedditQuery();
+  const removeQuery = useRemoveRedditQuery();
+  const toggleQuery = useToggleRedditQuery();
+  const editQuery = useEditRedditQuery();
+  const generateQueries = useGenerateRedditQueries();
+  const bulkAddQueries = useBulkAddRedditQueries();
+  const { data: leadsData, isLoading: leadsLoading } = useRedditLeads({
+    page: leadsPage,
+    limit: 20,
+    status: leadsTab,
+    search: leadsSearch || undefined,
+  });
+  const { data: leadStatsData } = useRedditLeadStats();
+  const updateLeadStatus = useUpdateLeadStatus();
+  const dismissLead = useDismissLead();
+  const triggerProcess = useTriggerProcess();
+  const triggerSearchScan = useTriggerSearchScan();
 
   const handleGenerateKeywords = () => {
     generateKeywords.mutate(10, {
@@ -134,10 +165,11 @@ export default function RedditBotPage() {
     setEditingKeywordValue("");
   };
 
-  const stats = statsData;
-  const posts = postsData?.data ?? [];
   const keywords = keywordsData?.keywords ?? [];
   const subreddits = subredditsData?.subreddits ?? [];
+  const queries = queriesData?.queries ?? [];
+  const painQueries = queries.filter((q) => q.query_type === 'pain');
+  const solutionQueries = queries.filter((q) => q.query_type === 'solution');
 
   const handleAddKeyword = () => {
     if (!newKeyword.trim()) return;
@@ -181,6 +213,52 @@ export default function RedditBotPage() {
     return String(count);
   };
 
+  // ── Search Query handlers ──────────────────────────────────────────
+  const handleAddQuery = () => {
+    if (!newQueryText.trim()) return;
+    addQuery.mutate({ queryText: newQueryText.trim(), queryType: newQueryType });
+    setNewQueryText("");
+  };
+
+  const handleStartEditQuery = (id: string, text: string) => {
+    setEditingQueryId(id);
+    setEditingQueryValue(text);
+  };
+
+  const handleSaveEditQuery = () => {
+    if (!editingQueryId || !editingQueryValue.trim()) return;
+    editQuery.mutate({ id: editingQueryId, queryText: editingQueryValue.trim() });
+    setEditingQueryId(null);
+    setEditingQueryValue("");
+  };
+
+  const handleGenerateQueries = () => {
+    generateQueries.mutate(20, {
+      onSuccess: (data) => {
+        const combined = [
+          ...data.pain_queries.map((t) => ({ text: t, type: 'pain' as const })),
+          ...data.solution_queries.map((t) => ({ text: t, type: 'solution' as const })),
+        ];
+        setSuggestedQueries(combined);
+        setQueryReviewOpen(true);
+      },
+    });
+  };
+
+  const handleConfirmQueries = () => {
+    if (suggestedQueries.length === 0) return;
+    bulkAddQueries.mutate(suggestedQueries, {
+      onSuccess: () => {
+        setQueryReviewOpen(false);
+        setSuggestedQueries([]);
+      },
+    });
+  };
+
+  const handleRemoveQuerySuggestion = (text: string) => {
+    setSuggestedQueries((prev) => prev.filter((q) => q.text !== text));
+  };
+
   return (
     <div className="space-y-6 max-w-[1200px] mx-auto pb-10">
       {/* Header */}
@@ -214,48 +292,46 @@ export default function RedditBotPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Opportunities Found
+              New Leads
             </CardTitle>
             <Search className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats?.opportunities ?? 0}
+              {leadStatsData?.new ?? 0}
             </div>
             <p className="text-xs text-muted-foreground">
               {keywords.length > 0
                 ? `Tracking ${keywords.filter((k) => k.is_active).length} keywords`
-                : "Bot inactive"}
+                : "Configure keywords to start"}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Replies Sent</CardTitle>
+            <CardTitle className="text-sm font-medium">Reviewed</CardTitle>
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.replied ?? 0}</div>
+            <div className="text-2xl font-bold">{leadStatsData?.reviewed ?? 0}</div>
             <p className="text-xs text-muted-foreground">
-              {stats?.replied
-                ? "Threads replied to"
-                : "No replies yet"}
+              Leads reviewed for engagement
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Est. Traffic Generated
+              Engaged
             </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats?.estimatedTraffic ?? 0}
+              {leadStatsData?.engaged ?? 0}
             </div>
             <p className="text-xs text-muted-foreground">
-              Based on post engagement
+              Total: {leadStatsData?.total ?? 0} leads found
             </p>
           </CardContent>
         </Card>
@@ -267,159 +343,218 @@ export default function RedditBotPage() {
         onValueChange={setActiveTab}
         className="space-y-4"
       >
-        <div className="flex items-center justify-between">
-          <TabsList>
-            <TabsTrigger value="opportunities">New Opportunities</TabsTrigger>
-            <TabsTrigger value="replied">Replied Threads</TabsTrigger>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <TabsList className="flex-wrap h-auto">
+            <TabsTrigger value="leads">Leads</TabsTrigger>
             <TabsTrigger value="keywords">Tracked Keywords</TabsTrigger>
+            <TabsTrigger value="queries">Search Queries</TabsTrigger>
           </TabsList>
 
-          {activeTab !== "keywords" && (
-            <div className="relative w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search subreddits or titles..."
-                className="pl-9"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+          {activeTab === "leads" ? (
+            <div className="flex items-center gap-2">
+              <div className="relative w-72">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search leads..."
+                  className="pl-9"
+                  value={leadsSearch}
+                  onChange={(e) => { setLeadsSearch(e.target.value); setLeadsPage(1); }}
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1"
+                onClick={() => triggerSearchScan.mutate()}
+                disabled={triggerSearchScan.isPending}
+              >
+                <Search className="h-3.5 w-3.5" />
+                {triggerSearchScan.isPending ? "Scanning..." : "Search Scan"}
+              </Button>
+              <Button
+                size="sm"
+                className="gap-1"
+                onClick={() => triggerProcess.mutate()}
+                disabled={triggerProcess.isPending}
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${triggerProcess.isPending ? "animate-spin" : ""}`} />
+                {triggerProcess.isPending ? "Processing..." : "Process Posts"}
+              </Button>
             </div>
-          )}
+          ) : null}
         </div>
 
-        {/* Opportunities Tab */}
-        <TabsContent value="opportunities" className="space-y-4">
-          {postsLoading ? (
-            <div className="text-center py-12 border rounded-xl border-dashed">
-              <RefreshCw className="h-8 w-8 text-muted-foreground mx-auto mb-4 animate-spin" />
-              <p className="text-muted-foreground">Loading opportunities...</p>
-            </div>
-          ) : posts.length === 0 ? (
-            <div className="text-center py-12 border rounded-xl border-dashed">
-              <Bot className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-              <h3 className="text-lg font-medium">No opportunities found</h3>
-              <p className="text-muted-foreground mt-1">
-                {keywords.length === 0
-                  ? "Configure keywords in Bot Settings to start tracking Reddit."
-                  : "No new matching posts found. The bot scans every 30 minutes."}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {posts.map((post) => (
-                <Card key={post.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge variant="outline" className="text-xs">
-                            r/{post.subreddit}
-                          </Badge>
-                          {post.matched_keyword && (
-                            <Badge variant="secondary" className="text-xs">
-                              {post.matched_keyword}
-                            </Badge>
-                          )}
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {formatTimeAgo(post.created_utc)}
-                          </span>
-                        </div>
-                        <a
-                          href={post.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-medium hover:underline line-clamp-1 flex items-center gap-1"
-                        >
-                          {post.title}
-                          <ExternalLink className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
-                        </a>
-                        {post.body && (
-                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                            {post.body}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                          <span>{post.score} upvotes</span>
-                          <span>{post.num_comments} comments</span>
-                          <span>by u/{post.author}</span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <div
-                          className={`text-xs font-medium px-2 py-1 rounded-full ${
-                            post.relevance_score >= 70
-                              ? "bg-green-100 text-green-700"
-                              : post.relevance_score >= 40
-                                ? "bg-yellow-100 text-yellow-700"
-                                : "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {post.relevance_score}% match
-                        </div>
-                        <Button size="sm" variant="outline" className="text-xs gap-1" asChild>
-                          <a href={post.url} target="_blank" rel="noopener noreferrer">
-                            View <ArrowUpRight className="h-3 w-3" />
-                          </a>
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
+        {/* Leads Tab */}
+        <TabsContent value="leads" className="space-y-4">
+          {/* Lead status tabs */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {[
+              { value: "new", label: "New", count: leadStatsData?.new ?? 0 },
+              { value: "reviewed", label: "Reviewed", count: leadStatsData?.reviewed ?? 0 },
+              { value: "engaged", label: "Engaged", count: leadStatsData?.engaged ?? 0 },
+              { value: "dismissed", label: "Dismissed", count: leadStatsData?.dismissed ?? 0 },
+              { value: "all", label: "All", count: leadStatsData?.total ?? 0 },
+            ].map((tab) => (
+              <Button
+                key={tab.value}
+                variant={leadsTab === tab.value ? "default" : "outline"}
+                size="sm"
+                onClick={() => { setLeadsTab(tab.value); setLeadsPage(1); }}
+              >
+                {tab.label}
+                {tab.count > 0 && (
+                  <Badge variant="secondary" className="ml-1.5 text-xs">
+                    {tab.count}
+                  </Badge>
+                )}
+              </Button>
+            ))}
+          </div>
 
-        {/* Replied Threads Tab */}
-        <TabsContent value="replied">
-          {postsLoading ? (
+          {leadsLoading ? (
             <div className="text-center py-12 border rounded-xl border-dashed">
               <RefreshCw className="h-8 w-8 text-muted-foreground mx-auto mb-4 animate-spin" />
-              <p className="text-muted-foreground">Loading...</p>
+              <p className="text-muted-foreground">Loading leads...</p>
             </div>
-          ) : posts.length === 0 ? (
+          ) : !leadsData?.data || leadsData.data.length === 0 ? (
             <div className="text-center py-12 border rounded-xl border-dashed">
-              <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-              <h3 className="text-lg font-medium">No replied threads yet</h3>
-              <p className="text-muted-foreground mt-1">
-                Threads where the bot has posted a response will appear here.
+              <Search className="h-8 w-8 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">
+                {leadsTab === "new" ? "No new leads yet. Click \"Process Posts\" to analyze raw posts." : `No ${leadsTab} leads.`}
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {posts.map((post) => (
-                <Card key={post.id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge variant="outline" className="text-xs">
-                            r/{post.subreddit}
-                          </Badge>
-                          <Badge className="text-xs bg-green-100 text-green-700 hover:bg-green-100">
-                            Replied
-                          </Badge>
+            <>
+              <div className="space-y-3">
+                {leadsData.data.map((lead) => {
+                  const post = lead.raw_posts;
+                  return (
+                    <Card key={lead.id} className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge variant="outline" className="text-xs">
+                                r/{post.subreddit}
+                              </Badge>
+                              <Badge
+                                variant={lead.similarity_score >= 0.7 ? "default" : "secondary"}
+                                className="text-xs"
+                              >
+                                {Math.round(lead.similarity_score * 100)}% match
+                              </Badge>
+                              <Badge variant="outline" className="text-xs">
+                                {lead.source_channel === "search" ? "Search" : "Listing"}
+                              </Badge>
+                              {post.upvote_count > 0 && (
+                                <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                                  <ArrowUpRight className="h-3 w-3" />
+                                  {post.upvote_count}
+                                </span>
+                              )}
+                              {post.comment_count > 0 && (
+                                <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                                  <MessageSquare className="h-3 w-3" />
+                                  {post.comment_count}
+                                </span>
+                              )}
+                              <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                                <Clock className="h-3 w-3" />
+                                {formatTimeAgo(post.created_utc || post.fetched_at)}
+                              </span>
+                            </div>
+                            <a
+                              href={post.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-medium hover:text-blue-500 transition-colors line-clamp-1"
+                            >
+                              {post.title}
+                              <ExternalLink className="h-3 w-3 inline ml-1 opacity-50" />
+                            </a>
+                            {post.body && (
+                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                {post.body}
+                              </p>
+                            )}
+                            {lead.matched_keywords.length > 0 && (
+                              <div className="flex gap-1 mt-2 flex-wrap">
+                                {lead.matched_keywords.map((kw) => (
+                                  <Badge key={kw} variant="outline" className="text-xs bg-orange-500/10 text-orange-600 border-orange-500/20">
+                                    {kw}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {lead.status === "new" && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => updateLeadStatus.mutate({ leadId: lead.id, status: "reviewed" })}
+                                >
+                                  <Check className="h-3.5 w-3.5 mr-1" />
+                                  Review
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-muted-foreground"
+                                  onClick={() => dismissLead.mutate(lead.id)}
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </Button>
+                              </>
+                            )}
+                            {lead.status === "reviewed" && (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={() => updateLeadStatus.mutate({ leadId: lead.id, status: "engaged" })}
+                              >
+                                <MessageSquare className="h-3.5 w-3.5 mr-1" />
+                                Engage
+                              </Button>
+                            )}
+                            {(lead.status === "engaged" || lead.status === "dismissed") && (
+                              <Badge variant={lead.status === "engaged" ? "default" : "secondary"}>
+                                {lead.status}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                        <a
-                          href={post.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-medium hover:underline line-clamp-1"
-                        >
-                          {post.title}
-                        </a>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                          <span>{post.score} upvotes</span>
-                          <span>{post.num_comments} comments</span>
-                          <span>{formatTimeAgo(post.created_utc)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+
+              {/* Pagination */}
+              {leadsData.data.length >= 20 && (
+                <div className="flex justify-center gap-2 pt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={leadsPage <= 1}
+                    onClick={() => setLeadsPage((p) => Math.max(1, p - 1))}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground flex items-center px-3">
+                    Page {leadsPage}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setLeadsPage((p) => p + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </TabsContent>
 
@@ -563,6 +698,201 @@ export default function RedditBotPage() {
             </div>
           )}
         </TabsContent>
+
+        {/* Search Queries Tab */}
+        <TabsContent value="queries" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {queries.length} search quer{queries.length !== 1 ? "ies" : "y"} configured
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1"
+              onClick={handleGenerateQueries}
+              disabled={generateQueries.isPending}
+            >
+              <Sparkles
+                className={`h-3 w-3 ${generateQueries.isPending ? "animate-pulse" : ""}`}
+              />
+              {generateQueries.isPending ? "Generating..." : "Generate with AI"}
+            </Button>
+          </div>
+
+          {/* Add new query */}
+          <div className="flex gap-2">
+            <select
+              value={newQueryType}
+              onChange={(e) => setNewQueryType(e.target.value as 'pain' | 'solution')}
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="pain">Pain</option>
+              <option value="solution">Solution</option>
+            </select>
+            <Input
+              placeholder="Add a search query (e.g. 'best tool for...')"
+              value={newQueryText}
+              onChange={(e) => setNewQueryText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAddQuery()}
+              className="flex-1"
+            />
+            <Button
+              variant="outline"
+              onClick={handleAddQuery}
+              disabled={!newQueryText.trim() || addQuery.isPending}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add
+            </Button>
+          </div>
+
+          {queriesLoading ? (
+            <div className="text-center py-12 border rounded-xl border-dashed">
+              <RefreshCw className="h-8 w-8 text-muted-foreground mx-auto mb-4 animate-spin" />
+            </div>
+          ) : queries.length === 0 ? (
+            <div className="text-center py-12 border rounded-xl border-dashed">
+              <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+              <h3 className="text-lg font-medium">No search queries configured</h3>
+              <p className="text-muted-foreground mt-1">
+                Add queries manually or generate with AI. Queries help find Reddit posts where people express pain points or seek solutions.
+              </p>
+              <Button
+                className="mt-4 gap-2"
+                onClick={handleGenerateQueries}
+                disabled={generateQueries.isPending}
+              >
+                <Sparkles className="h-4 w-4" />
+                {generateQueries.isPending ? "Generating..." : "Generate Queries with AI"}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Pain Queries */}
+              {painQueries.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+                    <Badge variant="destructive" className="text-xs">Pain</Badge>
+                    Frustration &amp; problem queries ({painQueries.length})
+                  </h3>
+                  <div className="grid grid-cols-1 gap-2">
+                    {painQueries.map((q) => (
+                      <Card key={q.id}>
+                        <CardContent className="p-3 flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            {editingQueryId === q.id ? (
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  value={editingQueryValue}
+                                  onChange={(e) => setEditingQueryValue(e.target.value)}
+                                  onKeyDown={(e) => e.key === "Enter" && handleSaveEditQuery()}
+                                  className="h-8 text-sm"
+                                  autoFocus
+                                />
+                                <Button variant="ghost" size="sm" onClick={handleSaveEditQuery} disabled={editQuery.isPending}>
+                                  <Check className="h-4 w-4 text-green-600" />
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={() => setEditingQueryId(null)}>
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">{q.query_text}</span>
+                                <Badge variant={q.is_active ? "default" : "secondary"} className="text-xs">
+                                  {q.is_active ? "Active" : "Paused"}
+                                </Badge>
+                              </div>
+                            )}
+                          </div>
+                          {editingQueryId !== q.id && (
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => toggleQuery.mutate({ id: q.id, isActive: !q.is_active })}
+                              >
+                                {q.is_active ? "Pause" : "Enable"}
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => handleStartEditQuery(q.id, q.query_text)}>
+                                <Pencil className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => removeQuery.mutate(q.id)}>
+                                <Trash2 className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Solution Queries */}
+              {solutionQueries.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+                    <Badge className="text-xs bg-blue-100 text-blue-700 hover:bg-blue-100">Solution</Badge>
+                    Solution-seeking queries ({solutionQueries.length})
+                  </h3>
+                  <div className="grid grid-cols-1 gap-2">
+                    {solutionQueries.map((q) => (
+                      <Card key={q.id}>
+                        <CardContent className="p-3 flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            {editingQueryId === q.id ? (
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  value={editingQueryValue}
+                                  onChange={(e) => setEditingQueryValue(e.target.value)}
+                                  onKeyDown={(e) => e.key === "Enter" && handleSaveEditQuery()}
+                                  className="h-8 text-sm"
+                                  autoFocus
+                                />
+                                <Button variant="ghost" size="sm" onClick={handleSaveEditQuery} disabled={editQuery.isPending}>
+                                  <Check className="h-4 w-4 text-green-600" />
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={() => setEditingQueryId(null)}>
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">{q.query_text}</span>
+                                <Badge variant={q.is_active ? "default" : "secondary"} className="text-xs">
+                                  {q.is_active ? "Active" : "Paused"}
+                                </Badge>
+                              </div>
+                            )}
+                          </div>
+                          {editingQueryId !== q.id && (
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => toggleQuery.mutate({ id: q.id, isActive: !q.is_active })}
+                              >
+                                {q.is_active ? "Pause" : "Enable"}
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => handleStartEditQuery(q.id, q.query_text)}>
+                                <Pencil className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => removeQuery.mutate(q.id)}>
+                                <Trash2 className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </TabsContent>
+
       </Tabs>
 
       {/* Bot Settings Modal */}
@@ -850,6 +1180,71 @@ export default function RedditBotPage() {
               disabled={suggestedKeywords.length === 0 || bulkAddKeywords.isPending}
             >
               {bulkAddKeywords.isPending ? "Saving..." : `Save ${suggestedKeywords.length} Keywords`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Review Generated Queries Dialog */}
+      <Dialog open={queryReviewOpen} onOpenChange={setQueryReviewOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Review Generated Search Queries</DialogTitle>
+            <DialogDescription>
+              Remove any queries you don&apos;t want, then confirm to save.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            {suggestedQueries.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No queries to review. All removed.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2 max-h-[350px] overflow-y-auto p-2 border rounded-md">
+                {suggestedQueries.map((q) => (
+                  <div
+                    key={q.text}
+                    className="flex items-center gap-2 p-2 rounded-md bg-muted/50"
+                  >
+                    <Badge
+                      variant={q.type === 'pain' ? 'destructive' : 'default'}
+                      className={`text-xs shrink-0 ${q.type === 'solution' ? 'bg-blue-100 text-blue-700 hover:bg-blue-100' : ''}`}
+                    >
+                      {q.type}
+                    </Badge>
+                    <span className="text-sm flex-1">{q.text}</span>
+                    <button
+                      onClick={() => handleRemoveQuerySuggestion(q.text)}
+                      className="hover:bg-muted rounded-full p-1 shrink-0"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              {suggestedQueries.filter((q) => q.type === 'pain').length} pain,{" "}
+              {suggestedQueries.filter((q) => q.type === 'solution').length} solution queries selected
+            </p>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setQueryReviewOpen(false);
+                setSuggestedQueries([]);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmQueries}
+              disabled={suggestedQueries.length === 0 || bulkAddQueries.isPending}
+            >
+              {bulkAddQueries.isPending ? "Saving..." : `Save ${suggestedQueries.length} Queries`}
             </Button>
           </DialogFooter>
         </DialogContent>

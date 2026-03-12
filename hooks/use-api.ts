@@ -380,6 +380,145 @@ export function useBulkAddRedditSubreddits() {
   });
 }
 
+// ==========================================
+// Reddit Query Hooks
+// ==========================================
+
+export function useRedditQueries() {
+  return useQuery({
+    queryKey: ["reddit", "queries"],
+    queryFn: () => redditApi.listQueries(),
+  });
+}
+
+export function useAddRedditQuery() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ queryText, queryType }: { queryText: string; queryType: 'pain' | 'solution' }) =>
+      redditApi.addQuery(queryText, queryType),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reddit", "queries"] });
+      toast.success("Search query added");
+    },
+    onError: () => {
+      toast.error("Failed to add search query");
+    },
+  });
+}
+
+export function useRemoveRedditQuery() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => redditApi.removeQuery(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reddit", "queries"] });
+      toast.success("Search query removed");
+    },
+    onError: () => {
+      toast.error("Failed to remove search query");
+    },
+  });
+}
+
+export function useToggleRedditQuery() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      redditApi.toggleQuery(id, isActive),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reddit", "queries"] });
+    },
+    onError: () => {
+      toast.error("Failed to update search query");
+    },
+  });
+}
+
+export function useEditRedditQuery() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, queryText }: { id: string; queryText: string }) =>
+      redditApi.editQuery(id, queryText),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reddit", "queries"] });
+      toast.success("Search query updated");
+    },
+    onError: () => {
+      toast.error("Failed to update search query");
+    },
+  });
+}
+
+export function useGenerateRedditQueries() {
+  return useMutation({
+    mutationFn: (maxQueries: number = 20) => redditApi.generateQueries(maxQueries),
+    onSuccess: (data) => {
+      toast.success(`Generated ${data.total} query suggestions`);
+    },
+    onError: () => {
+      toast.error("Failed to generate queries");
+    },
+  });
+}
+
+export function useBulkAddRedditQueries() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (queries: Array<{ text: string; type: 'pain' | 'solution' }>) =>
+      redditApi.bulkAddQueries(queries),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["reddit", "queries"] });
+      toast.success(`Saved ${data.inserted} search queries`);
+    },
+    onError: () => {
+      toast.error("Failed to save search queries");
+    },
+  });
+}
+
+// ==========================================
+// Client Profile Hooks
+// ==========================================
+
+export function useClientProfile() {
+  return useQuery({
+    queryKey: ["reddit", "profile"],
+    queryFn: () => redditApi.getProfile(),
+  });
+}
+
+export function useGenerateClientProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => redditApi.generateProfile(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reddit", "profile"] });
+      toast.success("Client profile generated successfully");
+    },
+    onError: () => {
+      toast.error("Failed to generate client profile");
+    },
+  });
+}
+
+export function useUpdateClientProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (updates: {
+      ideal_customer_profile?: string;
+      value_propositions?: string[];
+      negative_signals?: string[];
+    }) => redditApi.updateProfile(updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reddit", "profile"] });
+      toast.success("Client profile updated");
+    },
+    onError: () => {
+      toast.error("Failed to update client profile");
+    },
+  });
+}
+
 export function useRedditPosts(params: { page?: number; limit?: number; tab?: string; search?: string }) {
   return useQuery({
     queryKey: ["reddit", "posts", params],
@@ -426,6 +565,78 @@ export function useRejectRedditResponse() {
     },
     onError: () => {
       toast.error("Failed to reject response");
+    },
+  });
+}
+
+// ==========================================
+// Leads Hooks
+// ==========================================
+
+export function useRedditLeads(params: { page?: number; limit?: number; status?: string; search?: string }) {
+  return useQuery({
+    queryKey: ["reddit", "leads", params],
+    queryFn: () => redditApi.listLeads(params),
+  });
+}
+
+export function useRedditLeadStats() {
+  return useQuery({
+    queryKey: ["reddit", "leads", "stats"],
+    queryFn: () => redditApi.getLeadStats(),
+  });
+}
+
+export function useUpdateLeadStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ leadId, status }: { leadId: string; status: string }) =>
+      redditApi.updateLeadStatus(leadId, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reddit", "leads"] });
+    },
+    onError: () => {
+      toast.error("Failed to update lead status");
+    },
+  });
+}
+
+export function useDismissLead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (leadId: string) => redditApi.dismissLead(leadId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reddit", "leads"] });
+      toast.success("Lead dismissed");
+    },
+    onError: () => {
+      toast.error("Failed to dismiss lead");
+    },
+  });
+}
+
+export function useTriggerProcess() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => redditApi.triggerProcess(),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["reddit", "leads"] });
+      toast.success(`Processed ${data.processed} posts, found ${data.leads_created} leads`);
+    },
+    onError: () => {
+      toast.error("Failed to process posts");
+    },
+  });
+}
+
+export function useTriggerSearchScan() {
+  return useMutation({
+    mutationFn: () => redditApi.triggerSearchScan(),
+    onSuccess: (data) => {
+      toast.success(`Searched ${data.queriesSearched} queries, inserted ${data.postsInserted} posts`);
+    },
+    onError: () => {
+      toast.error("Failed to run search scan");
     },
   });
 }
