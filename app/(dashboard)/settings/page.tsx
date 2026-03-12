@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Globe, Webhook, Terminal, Ghost, Loader2, CheckCircle2, Trash2 } from "lucide-react";
+import { Globe, Webhook, Terminal, Ghost, Loader2, CheckCircle2, Trash2, LayoutTemplate, ShoppingCart, Monitor } from "lucide-react";
 import { integrationsApi } from "@/lib/api-client";
 import { toast } from "sonner";
 
@@ -43,6 +43,24 @@ const INTEGRATIONS_DEFS = [
     icon: Globe,
     iconColor: "text-green-600 dark:text-green-400",
   },
+  {
+    id: "webflow",
+    name: "Webflow",
+    icon: LayoutTemplate,
+    iconColor: "text-blue-600 dark:text-blue-500",
+  },
+  {
+    id: "shopify",
+    name: "Shopify",
+    icon: ShoppingCart,
+    iconColor: "text-[#95BF47] dark:text-[#95BF47]",
+  },
+  {
+    id: "wix",
+    name: "Wix",
+    icon: Monitor,
+    iconColor: "text-black dark:text-white",
+  },
 ];
 
 export default function SettingsPage() {
@@ -61,6 +79,16 @@ export default function SettingsPage() {
   const [wpUrl, setWpUrl] = useState("");
   const [wpUsername, setWpUsername] = useState("");
   const [wpAppPassword, setWpAppPassword] = useState("");
+
+  const [webflowApiKey, setWebflowApiKey] = useState("");
+  const [webflowCollectionId, setWebflowCollectionId] = useState("");
+
+  const [shopifyShopName, setShopifyShopName] = useState("");
+  const [shopifyAccessToken, setShopifyAccessToken] = useState("");
+  const [shopifyBlogId, setShopifyBlogId] = useState("");
+
+  const [wixSiteId, setWixSiteId] = useState("");
+  const [wixApiKey, setWixApiKey] = useState("");
 
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -102,6 +130,13 @@ export default function SettingsPage() {
     setWpUrl("");
     setWpUsername("");
     setWpAppPassword("");
+    setWebflowApiKey("");
+    setWebflowCollectionId("");
+    setShopifyShopName("");
+    setShopifyAccessToken("");
+    setShopifyBlogId("");
+    setWixSiteId("");
+    setWixApiKey("");
     setIsDialogOpen(true);
   };
 
@@ -118,6 +153,15 @@ export default function SettingsPage() {
     } else if (selectedIntegration === "wordpress") {
       if (!wpUrl || !wpUsername || !wpAppPassword) return toast.error("All fields are required");
       credentials = { url: wpUrl, username: wpUsername, appPassword: wpAppPassword };
+    } else if (selectedIntegration === "webflow") {
+      if (!webflowApiKey || !webflowCollectionId) return toast.error("All fields are required");
+      credentials = { apiKey: webflowApiKey, collectionId: webflowCollectionId };
+    } else if (selectedIntegration === "shopify") {
+      if (!shopifyShopName || !shopifyAccessToken || !shopifyBlogId) return toast.error("All fields are required");
+      credentials = { shopName: shopifyShopName, accessToken: shopifyAccessToken, blogId: shopifyBlogId };
+    } else if (selectedIntegration === "wix") {
+      if (!wixSiteId || !wixApiKey) return toast.error("All fields are required");
+      credentials = { siteId: wixSiteId, apiKey: wixApiKey };
     }
 
     setIsSaving(true);
@@ -338,6 +382,84 @@ export default function SettingsPage() {
                     value={wpAppPassword}
                     onChange={(e) => setWpAppPassword(e.target.value)}
                     placeholder="Your Application Password"
+                  />
+                </div>
+              </>
+            )}
+            {selectedIntegration === "webflow" && (
+              <>
+                <div className="grid gap-2">
+                  <Label htmlFor="webflowApiKey">API Key</Label>
+                  <Input
+                    id="webflowApiKey"
+                    type="password"
+                    value={webflowApiKey}
+                    onChange={(e) => setWebflowApiKey(e.target.value)}
+                    placeholder="Your Webflow API Key"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="webflowCollectionId">Collection ID</Label>
+                  <Input
+                    id="webflowCollectionId"
+                    value={webflowCollectionId}
+                    onChange={(e) => setWebflowCollectionId(e.target.value)}
+                    placeholder="E.g., 5f7b...1234"
+                  />
+                </div>
+              </>
+            )}
+            {selectedIntegration === "shopify" && (
+              <>
+                <div className="grid gap-2">
+                  <Label htmlFor="shopifyShopName">Shop Name (Domain)</Label>
+                  <Input
+                    id="shopifyShopName"
+                    value={shopifyShopName}
+                    onChange={(e) => setShopifyShopName(e.target.value)}
+                    placeholder="e.g., your-store.myshopify.com"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="shopifyAccessToken">Admin API Access Token</Label>
+                  <Input
+                    id="shopifyAccessToken"
+                    type="password"
+                    value={shopifyAccessToken}
+                    onChange={(e) => setShopifyAccessToken(e.target.value)}
+                    placeholder="shpat_..."
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="shopifyBlogId">Blog ID</Label>
+                  <Input
+                    id="shopifyBlogId"
+                    value={shopifyBlogId}
+                    onChange={(e) => setShopifyBlogId(e.target.value)}
+                    placeholder="Your Shopify Blog ID"
+                  />
+                </div>
+              </>
+            )}
+            {selectedIntegration === "wix" && (
+              <>
+                <div className="grid gap-2">
+                  <Label htmlFor="wixSiteId">Site ID</Label>
+                  <Input
+                    id="wixSiteId"
+                    value={wixSiteId}
+                    onChange={(e) => setWixSiteId(e.target.value)}
+                    placeholder="Your Wix Site ID"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="wixApiKey">API Key</Label>
+                  <Input
+                    id="wixApiKey"
+                    type="password"
+                    value={wixApiKey}
+                    onChange={(e) => setWixApiKey(e.target.value)}
+                    placeholder="Your Wix API Key"
                   />
                 </div>
               </>
