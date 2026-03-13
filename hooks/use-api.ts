@@ -619,9 +619,9 @@ export function useTriggerProcess() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => redditApi.triggerProcess(),
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reddit", "leads"] });
-      toast.success(`Processed ${data.processed} posts, found ${data.leads_created} leads`);
+      toast.success("Processing posts in background. Leads will appear shortly.");
     },
     onError: () => {
       toast.error("Failed to process posts");
