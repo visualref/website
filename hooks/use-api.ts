@@ -79,11 +79,18 @@ export function useContentList(filters?: QueryFilters) {
 }
 
 export function useContentDetail(id: string) {
-  return useQuery({
+  const query = useQuery({
     queryKey: ["content", id],
     queryFn: () => contentApi.get(id),
     enabled: !!id,
+    // Poll every 10s while content is still generating (DRAFT with no draft text)
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (data && !data.draft && data.status === "draft_ready") return 10000;
+      return false;
+    },
   });
+  return query;
 }
 
 export function useApproveContent() {

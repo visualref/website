@@ -419,13 +419,13 @@ export default function ContentDetailPage() {
           </div>
 
           {/* Editor Surface */}
-          <div className="w-full max-w-3xl bg-card min-h-[1000px] shadow-sm rounded-lg mb-20">
+          <div className="w-full max-w-3xl bg-card shadow-sm rounded-lg mb-20 overflow-x-hidden">
             {/* Cover Image Area */}
-            <div className="h-48 w-full bg-gradient-to-r from-blue-900 to-indigo-900 rounded-t-lg relative group overflow-hidden">
+            <div className="h-72 w-full bg-gradient-to-r from-blue-900 to-indigo-900 rounded-t-lg relative group overflow-hidden">
               {content.coverImage && (
                 <img
                   alt="Cover image"
-                  className="w-full h-full object-cover opacity-60 mix-blend-overlay"
+                  className="w-full h-full object-cover"
                   src={content.coverImage}
                 />
               )}
@@ -436,7 +436,17 @@ export default function ContentDetailPage() {
             </div>
 
             <div className="px-12 py-12 editor-content prose prose-invert max-w-none">
-              <ReactMarkdown>{content.draft || ""}</ReactMarkdown>
+              {!content.draft && content.status === ContentStatus.DRAFT_READY ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Generating content...</h3>
+                  <p className="text-sm text-muted-foreground max-w-md">
+                    Your article is being researched, outlined, and drafted. This usually takes 2-4 minutes.
+                  </p>
+                </div>
+              ) : (
+                <ReactMarkdown>{content.draft || ""}</ReactMarkdown>
+              )}
             </div>
 
             {/* Pro Tip Callout */}
