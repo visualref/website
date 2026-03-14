@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Sparkles, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { GoogleLogin } from "@react-oauth/google";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -21,9 +22,24 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuthStore();
+  const { login, googleLogin } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
+    if (!credentialResponse.credential) return;
+    setIsGoogleLoading(true);
+    try {
+      await googleLogin(credentialResponse.credential);
+      toast.success("Welcome back!");
+      router.push("/");
+    } catch {
+      toast.error("Google sign-in failed. Please try again.");
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
 
   const {
     register,
@@ -44,7 +60,7 @@ export default function LoginPage() {
       toast.success("Welcome back!");
       router.push("/");
     } catch {
-      toast.error("Invalid credentials. Try admin@geo.com / password123");
+      toast.error("Invalid email or password.");
     } finally {
       setIsLoading(false);
     }
@@ -188,6 +204,27 @@ export default function LoginPage() {
               )}
             </Button>
           </form>
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+            </div>
+          </div>
+
+          {/* Google Sign-In */}
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => toast.error("Google sign-in failed.")}
+              size="large"
+              width="100%"
+              text="continue_with"
+            />
+          </div>
         </div>
 
         {/* Card Footer */}
@@ -198,18 +235,6 @@ export default function LoginPage() {
           <a className="text-xs font-medium text-foreground hover:text-primary transition-colors" href="/register">
             Create an account
           </a>
-        </div>
-      </div>
-
-      {/* Demo Credentials Helper */}
-      <div className="mt-8 text-center opacity-70 hover:opacity-100 transition-opacity duration-300 cursor-help">
-        <div className="inline-flex items-center space-x-2 bg-foreground/5 px-3 py-1.5 rounded-full border border-foreground/10 backdrop-blur-sm">
-          <svg className="h-3 w-3 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span className="text-xs text-muted-foreground font-medium">
-            Demo: admin@geo.com / password123
-          </span>
         </div>
       </div>
 

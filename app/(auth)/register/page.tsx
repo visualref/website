@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Sparkles, Mail, Lock, User as UserIcon, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { GoogleLogin } from "@react-oauth/google";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -23,9 +24,20 @@ type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { register: registerUser } = useAuthStore();
+  const { register: registerUser, googleLogin } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
+    if (!credentialResponse.credential) return;
+    try {
+      await googleLogin(credentialResponse.credential);
+      toast.success("Account created successfully!");
+      router.push("/onboarding");
+    } catch {
+      toast.error("Google sign-up failed. Please try again.");
+    }
+  };
 
   const {
     register,
@@ -202,6 +214,27 @@ export default function RegisterPage() {
               )}
             </Button>
           </form>
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">Or sign up with</span>
+            </div>
+          </div>
+
+          {/* Google Sign-Up */}
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => toast.error("Google sign-up failed.")}
+              size="large"
+              width="100%"
+              text="signup_with"
+            />
+          </div>
         </div>
 
         {/* Card Footer */}

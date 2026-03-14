@@ -82,6 +82,14 @@ export const authApi = {
     await apiClient.post("/api/auth/logout");
   },
 
+  googleLogin: async (idToken: string): Promise<AuthResponse> => {
+    const { data } = await apiClient.post<ApiResponse<AuthResponse>>(
+      "/api/auth/google",
+      { idToken }
+    );
+    return data.data;
+  },
+
   getMe: async (token?: string): Promise<User> => {
     const config = token
       ? { headers: { Authorization: `Bearer ${token}` } }
