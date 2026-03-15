@@ -493,7 +493,7 @@ export default function ContentDetailPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {activeIntegrations.map((platform) => {
+                {activeIntegrations.filter(p => p.platform !== "google_search_console").map((platform) => {
                   const pId = platform.platform;
                   const label = pId === "dev.to" ? "Dev.to" : pId.charAt(0).toUpperCase() + pId.slice(1);
                   return (

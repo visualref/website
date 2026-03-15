@@ -514,6 +514,28 @@ export const integrationsApi = {
     return data.data;
   },
 
+  getGoogleAuthUrl: async (): Promise<{ url: string }> => {
+    const { data } = await apiClient.get<ApiResponse<{ url: string }>>(
+      "/api/integrations/google/auth-url"
+    );
+    return data.data;
+  },
+
+  getGoogleDetails: async (): Promise<{ details: any }> => {
+    const { data } = await apiClient.get<ApiResponse<{ details: any }>>(
+      "/api/integrations/google/details"
+    );
+    return data.data;
+  },
+
+  getGoogleAnalytics: async (params: { siteUrl: string; startDate?: string; endDate?: string }): Promise<{ analytics: any }> => {
+    const { data } = await apiClient.get<ApiResponse<{ analytics: any }>>(
+      "/api/integrations/google/analytics",
+      { params }
+    );
+    return data.data;
+  },
+
   save: async (payload: { platform: string; credentials: any }): Promise<{ integration: any }> => {
     const { data } = await apiClient.post<ApiResponse<{ integration: any }>>(
       "/api/integrations/save",
