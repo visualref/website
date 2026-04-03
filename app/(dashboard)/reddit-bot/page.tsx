@@ -446,21 +446,21 @@ export default function RedditBotPage() {
                               <Badge variant="outline" className="text-xs">
                                 {lead.source_channel === "search" ? "Search" : "Listing"}
                               </Badge>
-                              {post.upvote_count > 0 && (
+                              {post.score > 0 && (
                                 <span className="text-xs text-muted-foreground flex items-center gap-0.5">
                                   <ArrowUpRight className="h-3 w-3" />
-                                  {post.upvote_count}
+                                  {post.score}
                                 </span>
                               )}
-                              {post.comment_count > 0 && (
+                              {post.num_comments > 0 && (
                                 <span className="text-xs text-muted-foreground flex items-center gap-0.5">
                                   <MessageSquare className="h-3 w-3" />
-                                  {post.comment_count}
+                                  {post.num_comments}
                                 </span>
                               )}
                               <span className="text-xs text-muted-foreground flex items-center gap-0.5">
                                 <Clock className="h-3 w-3" />
-                                {formatTimeAgo(post.created_utc || post.fetched_at)}
+                                {formatTimeAgo(post.created_utc || post.discovered_at)}
                               </span>
                             </div>
                             <a
