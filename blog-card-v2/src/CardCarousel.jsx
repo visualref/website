@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import './CardCarousel.css';
 import cards from './data';
-import './CardCarousel.css';
 
 const ReactIcon = ({ color }) => (
   <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
@@ -43,14 +42,6 @@ function getIcon(tag, color) {
 
 function CardCarousel() {
   const [current, setCurrent] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % cards.length);
-    }, 3000);
-    return () => clearInterval(timer);
-  }, []);
-
   const cardWidth = 236;
   const translateX = current * cardWidth;
 
@@ -69,7 +60,6 @@ function CardCarousel() {
           {cards.map((card) => (
             <div className="card-wrap" key={card.id}>
               <div className="card-inner">
-
                 <div className="card-front">
                   <div
                     className="card-image-area"
@@ -95,15 +85,7 @@ function CardCarousel() {
                   </span>
                   <h3>{card.title}</h3>
                   <p>{card.description}</p>
-                  <a
-                    href="#"
-                    className="card-link"
-                    style={{ color: card.accentColor }}
-                  >
-                    Read article
-                  </a>
                 </div>
-
               </div>
             </div>
           ))}
