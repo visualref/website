@@ -1,17 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Search,
-  Download,
   Plus,
-  Filter,
-  Calendar,
   ChevronLeft,
   ChevronRight,
-  MoreVertical,
-  Settings,
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -119,6 +114,7 @@ export default function ReviewQueuePage() {
   const [pageSize, setPageSize] = useState(10);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   
+  const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newDate, setNewDate] = useState("");
@@ -204,10 +200,6 @@ export default function ReviewQueuePage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
           <Button className="gap-2 shadow-lg shadow-primary/20" onClick={() => setIsModalOpen(true)}>
             <Plus className="h-4 w-4" />
             New Content
@@ -311,7 +303,8 @@ export default function ReviewQueuePage() {
                   return (
                     <TableRow
                       key={item.id}
-                      className="group hover:bg-accent/30 transition-colors"
+                      className="group hover:bg-accent/30 transition-colors cursor-pointer"
+                      onClick={() => router.push(`/content/${item.id}`)}
                     >
                       <TableCell className="py-4 px-6">
                         <Checkbox className="border-border" />
@@ -320,10 +313,6 @@ export default function ReviewQueuePage() {
                         <div className="flex flex-col">
                           <span className="font-medium group-hover:text-primary transition-colors">
                             {(item as any).topic_text || item.title || item.id}
-                          </span>
-                          <span className="text-xs font-mono text-muted-foreground">
-                            #ID-{item.id.padStart(4, "0")} ·{" "}
-                            {((item.word_count || 0) / 1000).toFixed(1)}k words
                           </span>
                         </div>
                       </TableCell>
@@ -353,18 +342,7 @@ export default function ReviewQueuePage() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="py-4 px-6 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
-                          <Link href={`/content/${item.id}`}>
-                            <Button size="sm" className="h-7 text-xs shadow-md">
-                              Review
-                            </Button>
-                          </Link>
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                      <TableCell className="py-4 px-6" />
                     </TableRow>
                   );
                 })

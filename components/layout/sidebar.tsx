@@ -52,7 +52,6 @@ export function Sidebar() {
     { href: "/topics", label: "Content Calendar", icon: CalendarDays },
     { href: "/review", label: "Review Queue", icon: ClipboardCheck, badge: reviewCount || undefined },
     { href: "/company-profile", label: "Company Profile", icon: Building2 },
-    { href: "/entities", label: "Entities", icon: Users },
     { href: "/reddit-bot", label: "Reddit Bot", icon: Bot },
     { href: "/analytics", label: "Analytics", icon: BarChart3 },
   ];

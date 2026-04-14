@@ -5,21 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Check,
-  X,
-  RotateCcw,
   MoreVertical,
   Cloud,
-  SortAsc,
-  Bold,
-  Italic,
-  Link2,
-  List,
-  Quote,
-  Sparkles,
   Image,
-  AtSign,
-  Send,
-  Heading,
   CheckCircle,
   AlertTriangle,
   Globe,
@@ -221,254 +209,188 @@ export default function ContentDetailPage() {
   return (
     <div className="h-screen flex flex-col overflow-hidden -m-8 -mt-8">
       {/* Top Sticky Header */}
-      <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6 shrink-0 z-50">
-        <div className="flex items-center gap-6 flex-1">
-          {/* Back */}
+      <header className="h-14 border-b border-border bg-card flex items-center justify-between px-5 shrink-0 z-50">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
           <button
-            className="text-muted-foreground hover:text-primary transition-colors"
+            className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
             onClick={() => router.push("/review")}
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4" />
           </button>
-          <div className="h-6 w-px bg-border" />
-
-          {/* Title & Status */}
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
-              <span>Projects</span>
-              <span className="text-[10px]">&#8250;</span>
-              <span>Marketing Q3</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-lg font-semibold truncate max-w-[400px]">
-                {content.title}
-              </span>
-              {getStatusBadge(content.status)}
-            </div>
+          <div className="h-5 w-px bg-border shrink-0" />
+          <div className="min-w-0 flex items-center gap-2.5">
+            <span className="text-sm font-medium truncate text-foreground">
+              {content.title}
+            </span>
+            {getStatusBadge(content.status)}
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center mr-4 text-xs text-muted-foreground">
-            <Cloud className="h-3.5 w-3.5 mr-1" />
-            Saved 2m ago
-          </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground mr-2">
+            <Cloud className="h-3 w-3" />
+            Saved
+          </span>
 
-          {/* Show Publish button when approved */}
           {(isApproved || isPublished) && (
             <Button
-              className="gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20"
+              size="sm"
+              className="gap-1.5 h-8 bg-blue-600 hover:bg-blue-700 text-white text-xs"
               onClick={() => setPublishDialogOpen(true)}
             >
-              <Upload className="h-4 w-4" />
+              <Upload className="h-3.5 w-3.5" />
               {isPublished ? "Republish" : "Publish"}
             </Button>
           )}
 
-          {/* Show review actions when content is in review */}
           {isInReview && (
             <>
               <Button
                 variant="outline"
-                className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                size="sm"
+                className="h-8 text-xs border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300"
                 onClick={handleReject}
                 disabled={isMutating}
               >
-                {rejectMutation.isPending ? (
-                   <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                ) : null}
+                {rejectMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
                 Reject
               </Button>
               <Button
-                className="shadow-lg shadow-primary/20 gap-2"
+                size="sm"
+                className="h-8 text-xs gap-1.5"
                 onClick={handleApprove}
                 disabled={isMutating}
               >
                 {approveMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  <Check className="h-4 w-4" />
+                  <Check className="h-3.5 w-3.5" />
                 )}
                 Approve
               </Button>
             </>
           )}
 
-          <div className="ml-2 pl-2 border-l border-border">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground hover:text-primary"
-            >
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </div>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground">
+            <MoreVertical className="h-4 w-4" />
+          </Button>
         </div>
       </header>
 
-      {/* Main Workspace (3-Column Layout) */}
+      {/* Main Workspace */}
       <main className="flex-1 flex overflow-hidden">
         {/* Left Sidebar: Outline */}
-        <aside className="w-72 bg-card border-r border-border flex flex-col shrink-0">
-          <div className="p-4 border-b border-border flex items-center justify-between">
-            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+        <aside className="w-56 bg-card border-r border-border flex flex-col shrink-0">
+          <div className="px-4 py-3 border-b border-border">
+            <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
               Outline
             </h3>
-            <button className="text-muted-foreground hover:text-primary">
-              <SortAsc className="h-4 w-4" />
-            </button>
           </div>
-            {/* Dynamic Outline */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-1">
-              {(content.outline || []).map((section: any) => (
-                <div key={section.id} className="mb-1">
-                  {/* Section Header (H2) */}
+
+          <div className="flex-1 overflow-y-auto py-3 px-2">
+            {(content.outline || []).map((section: any) => (
+              <div key={section.id} className="mb-0.5">
+                <button
+                  className={cn(
+                    "flex items-start gap-2 px-2 py-1.5 rounded-md w-full text-left transition-colors",
+                    activeSection === section.id
+                      ? "bg-primary/10 text-primary"
+                      : "hover:bg-accent/60 text-foreground/80 hover:text-foreground"
+                  )}
+                  onClick={() => setActiveSection(section.id)}
+                >
+                  <span className="text-[10px] font-bold text-muted-foreground/60 mt-0.5 shrink-0 w-5">H2</span>
+                  <span className="text-xs font-medium leading-snug line-clamp-2">{section.title}</span>
+                </button>
+
+                {section.children?.map((child: any) => (
                   <button
+                    key={child.id}
                     className={cn(
-                      "group flex items-center gap-2 p-2 rounded-lg w-full text-left transition-colors text-sm",
-                      activeSection === section.id
-                        ? "bg-primary/10 text-primary border-l-2 border-primary"
-                        : "hover:bg-accent text-foreground"
+                      "flex items-start gap-2 px-2 py-1.5 pl-7 rounded-md w-full text-left transition-colors",
+                      activeSection === child.id
+                        ? "bg-primary/10 text-primary"
+                        : "hover:bg-accent/60 text-muted-foreground hover:text-foreground"
                     )}
-                    onClick={() => setActiveSection(section.id)}
+                    onClick={() => setActiveSection(child.id)}
                   >
-                    <Heading className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary shrink-0" />
-                    <span className="font-medium truncate">{section.title}</span>
+                    <span className="text-[10px] font-bold text-muted-foreground/40 mt-0.5 shrink-0 w-5">H3</span>
+                    <span className="text-xs leading-snug line-clamp-2">{child.title}</span>
                   </button>
+                ))}
+              </div>
+            ))}
+          </div>
 
-                  {/* Subsections (H3) */}
-                  {section.children?.map((child: any) => (
-                    <button
-                      key={child.id}
-                      className={cn(
-                        "group flex items-center gap-2 p-2 ml-4 rounded-lg w-[calc(100%-1rem)] text-left transition-colors text-sm",
-                        activeSection === child.id
-                          ? "bg-primary/10 text-primary border-l-2 border-primary"
-                          : "hover:bg-accent text-muted-foreground hover:text-foreground"
-                      )}
-                      onClick={() => setActiveSection(child.id)}
-                    >
-                      <span className="text-[10px] opacity-50 shrink-0 border border-border px-1 rounded">
-                        {child.level?.toUpperCase() || "H3"}
-                      </span>
-                      <span className="truncate">{child.title}</span>
-                    </button>
-                  ))}
-                </div>
-              ))}
-            </div>
-
-          {/* SEO Score Widget */}
-          <div className="p-4 border-t border-border bg-accent/30">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase">
-                Content Score
+          {/* Content Score */}
+          <div className="p-4 border-t border-border">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                Score
               </span>
               <span className="text-sm font-bold text-green-500">
-                {content.quality_score ?? 0}/10
+                {content.quality_score ?? 0}<span className="text-xs text-muted-foreground font-normal">/10</span>
               </span>
             </div>
-            <div className="w-full bg-secondary rounded-full h-1.5">
+            <div className="w-full bg-secondary rounded-full h-1">
               <div
-                className="bg-green-500 h-1.5 rounded-full"
-                style={{ width: `${(content.quality_score ?? 0)*10}%` }}
+                className="bg-green-500 h-1 rounded-full transition-all"
+                style={{ width: `${(content.quality_score ?? 0) * 10}%` }}
               />
             </div>
-            <div className="mt-3 text-xs text-muted-foreground space-y-1">
-              <p className="flex items-center gap-1">
-                <CheckCircle className="h-2.5 w-2.5 text-green-500" />
-                Readability is good
-              </p>
-            </div>
+            <p className="flex items-center gap-1 mt-2 text-[11px] text-muted-foreground">
+              <CheckCircle className="h-2.5 w-2.5 text-green-500 shrink-0" />
+              Readability is good
+            </p>
           </div>
         </aside>
 
-        {/* Center: Editor */}
-        <section className="flex-1 bg-background relative overflow-y-auto flex flex-col items-center">
-          {/* Floating Toolbar */}
-          <div className="sticky top-6 z-40 bg-card border border-border rounded-lg shadow-xl px-2 py-1.5 flex items-center gap-1 mb-8 mt-6">
-            <div className="flex items-center gap-0.5 border-r border-border pr-2 mr-1">
-              <button className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-primary transition-colors">
-                <Heading className="h-4 w-4" />
-              </button>
-              <button className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-primary transition-colors">
-                <Bold className="h-4 w-4" />
-              </button>
-              <button className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-primary transition-colors">
-                <Italic className="h-4 w-4" />
-              </button>
-              <button className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-primary transition-colors">
-                <Link2 className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="flex items-center gap-0.5 border-r border-border pr-2 mr-1">
-              <button className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-primary transition-colors">
-                <List className="h-4 w-4" />
-              </button>
-              <button className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-primary transition-colors">
-                <Quote className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="flex items-center gap-0.5">
-              <button className="flex items-center gap-1 px-2 py-1 rounded bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 text-xs font-medium transition-colors">
-                <Sparkles className="h-3.5 w-3.5" />
-                AI Rephrase
-              </button>
-            </div>
-          </div>
-
-          {/* Editor Surface */}
-          <div className="w-full max-w-3xl bg-card shadow-sm rounded-lg mb-20 overflow-x-hidden">
-            {/* Cover Image Area */}
-            <div className="h-72 w-full bg-gradient-to-r from-blue-900 to-indigo-900 rounded-t-lg relative group overflow-hidden">
-              {content.coverImage && (
+        {/* Center: Content */}
+        <section className="flex-1 bg-background overflow-y-auto">
+          <div className="max-w-2xl mx-auto px-8 py-10 pb-24">
+            {/* Cover Image */}
+            <div className="h-64 w-full bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl relative group overflow-hidden mb-8">
+              {content.coverImage ? (
                 <img
                   alt="Cover image"
                   className="w-full h-full object-cover"
                   src={content.coverImage}
                 />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-900/80 via-indigo-900/60 to-purple-900/80" />
               )}
-              <button className="absolute bottom-4 right-4 bg-black/50 hover:bg-black/70 text-white text-xs px-3 py-1.5 rounded backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                <Image className="h-3.5 w-3.5" />
+              <button className="absolute bottom-3 right-3 bg-black/60 hover:bg-black/80 text-white text-xs px-3 py-1.5 rounded-lg backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5">
+                <Image className="h-3 w-3" />
                 Change Cover
               </button>
             </div>
 
-            <div className="px-12 py-12 editor-content prose prose-invert max-w-none">
+            {/* Article Body */}
+            <div className="editor-content prose prose-invert max-w-none
+              prose-headings:font-semibold prose-headings:tracking-tight
+              prose-h2:text-xl prose-h2:mt-10 prose-h2:mb-3
+              prose-h3:text-base prose-h3:mt-6 prose-h3:mb-2
+              prose-p:text-[15px] prose-p:leading-[1.85] prose-p:text-foreground/80
+              prose-li:text-[15px] prose-li:leading-relaxed prose-li:text-foreground/80
+              prose-strong:text-foreground prose-strong:font-semibold
+              prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
               {!content.draft && content.status === ContentStatus.DRAFT_READY ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Generating content...</h3>
-                  <p className="text-sm text-muted-foreground max-w-md">
-                    Your article is being researched, outlined, and drafted. This usually takes 2-4 minutes.
+                <div className="flex flex-col items-center justify-center py-24 text-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+                  <h3 className="text-base font-semibold mb-1">Generating content...</h3>
+                  <p className="text-sm text-muted-foreground max-w-sm">
+                    Your article is being researched and drafted. This usually takes 2–4 minutes.
                   </p>
                 </div>
               ) : (
                 <ReactMarkdown>{content.draft || ""}</ReactMarkdown>
               )}
             </div>
-
-            {/* Pro Tip Callout */}
-            <div className="mx-12 my-8 p-6 bg-accent/30 rounded-lg border border-border/50 flex gap-4">
-              <div className="bg-primary/20 p-2 rounded-full h-fit">
-                <Sparkles className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h4 className="font-bold mb-1">Pro Tip</h4>
-                <p className="text-sm text-muted-foreground leading-normal">
-                  Always maintain a &quot;human in the loop&quot; workflow. AI is
-                  a powerful assistant, not a replacement for human judgment and
-                  brand voice.
-                </p>
-              </div>
-            </div>
           </div>
-          <div className="h-20 shrink-0" />
         </section>
-
-
       </main>
+
+      {/* Full Screen Read Mode */}
 
       {/* Publish Dialog */}
       <Dialog open={publishDialogOpen} onOpenChange={setPublishDialogOpen}>
