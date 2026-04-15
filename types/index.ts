@@ -231,13 +231,29 @@ export interface StatusDistributionItem {
   color: string;
 }
 
+export type ActivityType =
+  | "blog_generated"
+  | "blog_published"
+  | "blog_generation_failed"
+  | "cover_updated"
+  // legacy types still supported
+  | "update"
+  | "flag"
+  | "approve"
+  | "import"
+  | "comment";
+
 export interface ActivityItem {
   id: string;
-  type: "update" | "flag" | "approve" | "import" | "comment";
-  message: string;
+  type: ActivityType;
+  message?: string;
+  contentItemId?: string | null;
+  topicText?: string | null;
   highlightText?: string;
   highlightColor?: string;
+  actor?: { id: string; name: string | null; avatar: string | null } | null;
   user?: User;
+  metadata?: Record<string, any> | null;
   timestamp: string;
 }
 

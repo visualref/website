@@ -269,7 +269,42 @@ export const contentApi = {
   ): Promise<void> => {
     await apiClient.post(`/api/content/${id}/distribute`, payload);
   },
+
+  regenerate: async (id: string): Promise<void> => {
+    await apiClient.post(`/api/content/${id}/regenerate`, {});
+  },
+
+  listImages: async (id: string): Promise<{ images: ContentImage[] }> => {
+    const { data } = await apiClient.get<ApiResponse<{ images: ContentImage[] }>>(
+      `/api/content/${id}/images`
+    );
+    return data.data;
+  },
+
+  uploadImage: async (id: string, file: File): Promise<{ image: ContentImage }> => {
+    const form = new FormData();
+    form.append("file", file);
+    const { data } = await apiClient.post<ApiResponse<{ image: ContentImage }>>(
+      `/api/content/${id}/images`,
+      form,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+    return data.data;
+  },
+
+  setCover: async (id: string, imageId: string): Promise<void> => {
+    await apiClient.patch(`/api/content/${id}/cover`, { imageId });
+  },
 };
+
+export interface ContentImage {
+  id: string;
+  content_item_id: string;
+  image_url: string;
+  thumbnail_url: string | null;
+  source: "upload" | "generated";
+  created_at: string;
+}
 
 // ==========================================
 // Analytics API
@@ -305,7 +340,15 @@ const mapAnalytics = (data: any): AnalyticsOverview => {
       count: s.count,
       color: statusColors[s.status.toLowerCase()] || "#cbd5e1",
     })),
-    recentActivity: [],
+    recentActivity: (data.recent_activity || []).map((e: any) => ({
+      id: e.id,
+      type: e.type,
+      contentItemId: e.content_item_id,
+      topicText: e.topic_text,
+      actor: e.actor,
+      metadata: e.metadata,
+      timestamp: e.created_at,
+    })),
   };
 };
 

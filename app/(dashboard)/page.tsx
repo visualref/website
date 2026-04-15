@@ -12,7 +12,12 @@ import {
   Upload,
   MessageSquare,
   AlertTriangle,
+  Sparkles,
+  Send,
+  Image as ImageIcon,
 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import type { ActivityItem } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -84,7 +89,47 @@ const activityIcons: Record<string, { icon: React.ElementType; bg: string; color
   approve: { icon: CheckCircle, bg: "bg-green-500/10", color: "text-green-500" },
   import: { icon: Upload, bg: "bg-primary/10", color: "text-primary" },
   comment: { icon: MessageSquare, bg: "bg-primary/10", color: "text-primary" },
+  blog_generated: { icon: Sparkles, bg: "bg-primary/10", color: "text-primary" },
+  blog_published: { icon: Send, bg: "bg-green-500/10", color: "text-green-500" },
+  blog_generation_failed: {
+    icon: AlertTriangle,
+    bg: "bg-red-500/10",
+    color: "text-red-400",
+  },
+  cover_updated: { icon: ImageIcon, bg: "bg-muted", color: "text-muted-foreground" },
 };
+
+function describeActivity(a: ActivityItem): { message: string; highlight?: string; highlightColor?: string } {
+  const topic = a.topicText || "";
+  switch (a.type) {
+    case "blog_generated":
+      return { message: "Blog generated", highlight: topic, highlightColor: "text-primary" };
+    case "blog_published":
+      return {
+        message: "Blog published",
+        highlight: topic,
+        highlightColor: "text-green-400",
+      };
+    case "blog_generation_failed":
+      return {
+        message: "Generation failed",
+        highlight: topic,
+        highlightColor: "text-red-400",
+      };
+    case "cover_updated":
+      return { message: "Cover updated", highlight: topic, highlightColor: "text-primary" };
+    default:
+      return { message: a.message || "", highlight: a.highlightText, highlightColor: a.highlightColor };
+  }
+}
+
+function formatTimestamp(ts: string): string {
+  try {
+    return formatDistanceToNow(new Date(ts), { addSuffix: true });
+  } catch {
+    return ts;
+  }
+}
 
 function KPISkeletons() {
   return (
@@ -328,14 +373,17 @@ export default function DashboardPage() {
                 analytics?.recentActivity?.map((activity) => {
                   const iconConfig = activityIcons[activity.type] || activityIcons.update;
                   const IconComp = iconConfig.icon;
+                  const desc = describeActivity(activity);
+                  const actor = activity.actor || activity.user;
+                  const actorName = actor?.name || null;
                   return (
                     <div key={activity.id} className="flex space-x-3">
                       <div className="flex-shrink-0 mt-0.5">
-                        {activity.user?.avatar ? (
+                        {actor?.avatar ? (
                           <Avatar className="h-8 w-8">
-                            <AvatarImage src={activity.user.avatar} />
+                            <AvatarImage src={actor.avatar} />
                             <AvatarFallback className="text-[10px]">
-                              {activity.user.name
+                              {(actorName || "?")
                                 .split(" ")
                                 .map((n) => n[0])
                                 .join("")}
@@ -351,18 +399,16 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">
-                          {activity.user && (
-                            <span>{activity.user.name} </span>
-                          )}
-                          {activity.message}{" "}
-                          {activity.highlightText && (
-                            <span className={activity.highlightColor || "text-primary"}>
-                              {activity.highlightText}
+                          {actorName && <span>{actorName} </span>}
+                          {desc.message}{" "}
+                          {desc.highlight && (
+                            <span className={desc.highlightColor || "text-primary"}>
+                              {desc.highlight}
                             </span>
                           )}
                         </p>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {activity.timestamp}
+                          {formatTimestamp(activity.timestamp)}
                         </p>
                       </div>
                     </div>

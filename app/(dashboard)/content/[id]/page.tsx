@@ -13,7 +13,14 @@ import {
   Globe,
   Loader2,
   Upload,
+  RefreshCw,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,7 +48,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ContentStatus } from "@/types";
 
-import { integrationsApi } from "@/lib/api-client";
+import { integrationsApi, contentApi } from "@/lib/api-client";
+import { CoverImageDialog } from "@/components/content/cover-image-dialog";
 
 function getStatusBadge(status: string) {
   const normalizedStatus = status?.toLowerCase();
@@ -103,8 +111,11 @@ export default function ContentDetailPage() {
   const [activeSection, setActiveSection] = useState("s2");
   const [commentText, setCommentText] = useState("");
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
+  const [coverDialogOpen, setCoverDialogOpen] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [activeIntegrations, setActiveIntegrations] = useState<any[]>([]);
+  const [optimisticCover, setOptimisticCover] = useState<string | null>(null);
 
   useEffect(() => {
     integrationsApi.get().then((data) => {
@@ -155,6 +166,18 @@ export default function ContentDetailPage() {
         },
       }
     );
+  };
+
+  const handleRegenerate = async () => {
+    setRegenerating(true);
+    try {
+      await contentApi.regenerate(id);
+      toast.success("Regeneration started — this usually takes 2–4 minutes");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to regenerate");
+    } finally {
+      setRegenerating(false);
+    }
   };
 
   const togglePlatform = (platformId: string) => {
@@ -271,9 +294,26 @@ export default function ContentDetailPage() {
             </>
           )}
 
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground">
-            <MoreVertical className="h-4 w-4" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={handleRegenerate}
+                disabled={regenerating}
+              >
+                {regenerating ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3.5 w-3.5" />
+                )}
+                Regenerate
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
@@ -350,16 +390,20 @@ export default function ContentDetailPage() {
           <div className="max-w-2xl mx-auto px-8 py-10 pb-24">
             {/* Cover Image */}
             <div className="h-64 w-full bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl relative group overflow-hidden mb-8">
-              {content.coverImage ? (
+              {(optimisticCover || content.coverImage) ? (
                 <img
                   alt="Cover image"
                   className="w-full h-full object-cover"
-                  src={content.coverImage}
+                  src={optimisticCover || (content.coverImage as string)}
                 />
               ) : (
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-900/80 via-indigo-900/60 to-purple-900/80" />
               )}
-              <button className="absolute bottom-3 right-3 bg-black/60 hover:bg-black/80 text-white text-xs px-3 py-1.5 rounded-lg backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setCoverDialogOpen(true)}
+                className="absolute bottom-3 right-3 bg-black/60 hover:bg-black/80 text-white text-xs px-3 py-1.5 rounded-lg backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5"
+              >
                 <Image className="h-3 w-3" />
                 Change Cover
               </button>
@@ -378,9 +422,23 @@ export default function ContentDetailPage() {
                 <div className="flex flex-col items-center justify-center py-24 text-center">
                   <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
                   <h3 className="text-base font-semibold mb-1">Generating content...</h3>
-                  <p className="text-sm text-muted-foreground max-w-sm">
+                  <p className="text-sm text-muted-foreground max-w-sm mb-6">
                     Your article is being researched and drafted. This usually takes 2–4 minutes.
                   </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRegenerate}
+                    disabled={regenerating}
+                    className="gap-1.5"
+                  >
+                    {regenerating ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                    )}
+                    Regenerate
+                  </Button>
                 </div>
               ) : (
                 <ReactMarkdown>{content.draft || ""}</ReactMarkdown>
@@ -391,6 +449,15 @@ export default function ContentDetailPage() {
       </main>
 
       {/* Full Screen Read Mode */}
+
+      {/* Cover Image Dialog */}
+      <CoverImageDialog
+        open={coverDialogOpen}
+        onOpenChange={setCoverDialogOpen}
+        contentId={id}
+        currentCover={optimisticCover || content.coverImage}
+        onUpdated={(url) => setOptimisticCover(url)}
+      />
 
       {/* Publish Dialog */}
       <Dialog open={publishDialogOpen} onOpenChange={setPublishDialogOpen}>
