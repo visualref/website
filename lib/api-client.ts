@@ -545,7 +545,7 @@ export const integrationsApi = {
   },
 
   delete: async (platform: string): Promise<void> => {
-    await apiClient.delete(`/api/integrations/${platform}`);
+    await apiClient.delete(`/api/integrations/${encodeURIComponent(platform)}`);
   },
 };
 

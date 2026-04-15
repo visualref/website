@@ -15,6 +15,33 @@ import { useAuthStore } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import type { Competitor } from "@/types";
 
+// Safely turn any error/message shape into a plain string for toast rendering.
+// Prevents "Objects are not valid as a React child" when the server returns
+// { message, code } or similar object-shaped errors.
+const toMessage = (val: unknown, fallback: string): string => {
+  if (!val) return fallback;
+  if (typeof val === "string") return val;
+  if (typeof val === "object") {
+    const anyVal = val as any;
+    if (typeof anyVal.message === "string") return anyVal.message;
+    if (typeof anyVal.error === "string") return anyVal.error;
+    try {
+      return JSON.stringify(anyVal);
+    } catch {
+      return fallback;
+    }
+  }
+  return String(val);
+};
+
+const extractApiError = (error: any, fallback: string): string => {
+  const data = error?.response?.data;
+  return toMessage(
+    data?.error ?? data?.message ?? data ?? error?.message,
+    fallback
+  );
+};
+
 const INTEGRATIONS_DEFS = [
   {
     id: "wordpress",
@@ -98,7 +125,7 @@ export default function SettingsPage() {
   const [wixApiKey, setWixApiKey] = useState("");
 
   const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [deletingPlatform, setDeletingPlatform] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
 
   useEffect(() => {
@@ -135,9 +162,16 @@ export default function SettingsPage() {
     try {
       setIsConnecting(true);
       const { url } = await integrationsApi.getGoogleAuthUrl();
+      if (!url) {
+        toast.error("Could not get Google auth URL. Please try again.");
+        setIsConnecting(false);
+        return;
+      }
       window.location.href = url;
-    } catch (error) {
-      toast.error("Failed to initiate connection to Google Search Console");
+    } catch (error: any) {
+      toast.error(
+        extractApiError(error, "Failed to initiate connection to Google Search Console")
+      );
       setIsConnecting(false);
     }
   };
@@ -166,22 +200,40 @@ export default function SettingsPage() {
 
     let credentials: any = {};
     if (selectedIntegration === "dev-to") {
-      if (!devToApiKey) return toast.error("API Key is required");
+      if (!devToApiKey) {
+        toast.error("API Key is required");
+        return;
+      }
       credentials = { apiKey: devToApiKey };
     } else if (selectedIntegration === "ghost") {
-      if (!ghostUrl || !ghostAdminApiKey) return toast.error("URL and Admin API Key are required");
+      if (!ghostUrl || !ghostAdminApiKey) {
+        toast.error("URL and Admin API Key are required");
+        return;
+      }
       credentials = { url: ghostUrl, adminApiKey: ghostAdminApiKey };
     } else if (selectedIntegration === "wordpress") {
-      if (!wpUrl || !wpUsername || !wpAppPassword) return toast.error("All fields are required");
+      if (!wpUrl || !wpUsername || !wpAppPassword) {
+        toast.error("All fields are required");
+        return;
+      }
       credentials = { url: wpUrl, username: wpUsername, appPassword: wpAppPassword };
     } else if (selectedIntegration === "webflow") {
-      if (!webflowApiKey || !webflowCollectionId) return toast.error("All fields are required");
+      if (!webflowApiKey || !webflowCollectionId) {
+        toast.error("All fields are required");
+        return;
+      }
       credentials = { apiKey: webflowApiKey, collectionId: webflowCollectionId };
     } else if (selectedIntegration === "shopify") {
-      if (!shopifyShopName || !shopifyAccessToken || !shopifyBlogId) return toast.error("All fields are required");
+      if (!shopifyShopName || !shopifyAccessToken || !shopifyBlogId) {
+        toast.error("All fields are required");
+        return;
+      }
       credentials = { shopName: shopifyShopName, accessToken: shopifyAccessToken, blogId: shopifyBlogId };
     } else if (selectedIntegration === "wix") {
-      if (!wixSiteId || !wixApiKey) return toast.error("All fields are required");
+      if (!wixSiteId || !wixApiKey) {
+        toast.error("Site ID and API Key are required");
+        return;
+      }
       credentials = { siteId: wixSiteId, apiKey: wixApiKey };
     }
 
@@ -196,7 +248,12 @@ export default function SettingsPage() {
       setIsIntegrationsDialogOpen(false);
       fetchIntegrations();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Failed to verify and save integration credentials.");
+      const status = error?.response?.status;
+      const fallback =
+        status === 400 || status === 401 || status === 403
+          ? "Invalid credentials. Please double-check and try again."
+          : "Failed to verify and save integration credentials.";
+      toast.error(extractApiError(error, fallback));
     } finally {
       setIsSaving(false);
     }
@@ -206,21 +263,24 @@ export default function SettingsPage() {
     e.stopPropagation();
     try {
       if (!confirm("Are you sure you want to disconnect this integration?")) return;
-      setIsDeleting(true);
+      setDeletingPlatform(id);
       const platform = id === "dev-to" ? "dev.to" : id;
       await integrationsApi.delete(platform);
       toast.success("Integration removed successfully");
       fetchIntegrations();
-    } catch (error) {
-      toast.error("Failed to remove integration");
+    } catch (error: any) {
+      toast.error(extractApiError(error, "Failed to remove integration"));
     } finally {
-      setIsDeleting(false);
+      setDeletingPlatform(null);
     }
   };
 
   const handleAddCompetitor = async () => {
-    if (!newCompetitor.name) return toast.error("Competitor name is required");
-    
+    if (!newCompetitor.name) {
+      toast.error("Competitor name is required");
+      return;
+    }
+
     setIsSavingCompetitor(true);
     try {
       await competitorsApi.create(newCompetitor);
@@ -229,7 +289,7 @@ export default function SettingsPage() {
       setNewCompetitor({ name: "", url: "", notes: "" });
       fetchCompetitors();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Failed to add competitor.");
+      toast.error(extractApiError(error, "Failed to add competitor."));
     } finally {
       setIsSavingCompetitor(false);
     }
@@ -241,8 +301,8 @@ export default function SettingsPage() {
       await competitorsApi.delete(id);
       toast.success("Competitor removed successfully");
       fetchCompetitors();
-    } catch (error) {
-      toast.error("Failed to remove competitor");
+    } catch (error: any) {
+      toast.error(extractApiError(error, "Failed to remove competitor"));
     }
   };
 
@@ -254,11 +314,13 @@ export default function SettingsPage() {
 
   const selectedConfig = INTEGRATIONS_DEFS.find(i => i.id === selectedIntegration);
 
-  const userInitials = user?.name
-    ?.split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase() || "U";
+  const userInitials =
+    (user?.name || "")
+      .split(" ")
+      .filter(Boolean)
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase() || "U";
 
   return (
     <div className="space-y-8 max-w-[1200px]">
@@ -386,8 +448,10 @@ export default function SettingsPage() {
                     className={cn(
                       "group relative overflow-hidden transition-all duration-300",
                       "bg-card/40 backdrop-blur-xl border-border/60 shadow-sm",
-                      isDisabled || (integration.id === "google_search_console" && isConfigured)
-                        ? "opacity-60 cursor-not-allowed" 
+                      isDisabled
+                        ? "opacity-60 cursor-not-allowed"
+                        : integration.id === "google_search_console" && isConfigured
+                        ? "cursor-default"
                         : "cursor-pointer hover:shadow-lg hover:-translate-y-1 hover:border-primary/40 hover:bg-card/80",
                       isConfigured && "border-green-500/30"
                     )}
@@ -405,7 +469,7 @@ export default function SettingsPage() {
                         </div>
                         {isConfigured && (
                           <div onClick={(e) => handleDeleteIntegration(e, integration.id)} className="p-2 -mr-2 text-muted-foreground hover:text-red-500 transition-colors z-10 rounded-full hover:bg-red-500/10 cursor-pointer" title="Disconnect">
-                            {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                            {deletingPlatform === integration.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                           </div>
                         )}
                       </div>
