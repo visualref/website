@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
@@ -7,6 +8,13 @@ const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
+});
+
+// Brand/wordmark font — used exclusively for the "VisualRef" logo.
+const groote = localFont({
+  src: "../public/fonts/groote/Groote-Regular.otf",
+  variable: "--font-groote",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -25,7 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${groote.variable} font-sans antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

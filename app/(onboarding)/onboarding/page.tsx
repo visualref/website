@@ -647,39 +647,44 @@ export default function OnboardingPage() {
 
   if (isInitializing) {
     return (
-      <main className="w-full max-w-lg p-6 z-10 relative">
+      <OnboardingShell>
         <div className="flex flex-col items-center justify-center py-20 space-y-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg shadow-primary/20 animate-pulse">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#20395B] to-[#48C5AF] flex items-center justify-center shadow-lg shadow-[#48C5AF]/20 animate-pulse">
             <Sparkles className="h-6 w-6 text-white" />
           </div>
           <p className="text-sm text-muted-foreground">Resuming your setup...</p>
         </div>
-      </main>
+      </OnboardingShell>
     );
   }
 
   return (
-    <main className="w-full max-w-lg p-6 z-10 relative">
-      {/* Logo Section */}
-      <div className="flex flex-col items-center mb-6 space-y-4">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg shadow-primary/20">
-          <Sparkles className="h-6 w-6 text-white" />
-        </div>
-        <div className="text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Set Up Your Workspace
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Let&apos;s get everything ready for you in just a few steps.
-          </p>
-        </div>
+    <OnboardingShell>
+      {/* Brand wordmark */}
+      <div className="flex items-center justify-center mb-8">
+        <span
+          className="text-3xl tracking-tight text-[#20395B]"
+          style={{ fontFamily: "var(--font-groote)" }}
+        >
+          VisualRef
+        </span>
+      </div>
+
+      {/* Heading */}
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold tracking-tight text-[#20395B]">
+          Set up your workspace
+        </h1>
+        <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
+          Let&apos;s get everything ready for you in just a few steps.
+        </p>
       </div>
 
       {/* Step Indicator */}
       <StepIndicator currentStep={currentStep} steps={STEP_CONFIG} />
 
       {/* Card */}
-      <div className="w-full bg-card rounded-xl border border-border shadow-xl overflow-hidden">
+      <div className="w-full bg-white/80 backdrop-blur-xl rounded-2xl border border-white/60 shadow-[0_8px_40px_-12px_rgba(32,57,91,0.15)] overflow-hidden">
         <div className="p-8">
           {/* ================================ */}
           {/* Step 0: Create Workspace */}
@@ -1488,14 +1493,60 @@ export default function OnboardingPage() {
 
       {/* Footer Links */}
       <div className="mt-8 flex justify-center space-x-6 text-xs text-muted-foreground/60">
-        <a className="hover:text-muted-foreground transition-colors" href="#">
+        <a className="hover:text-[#20395B] transition-colors" href="#">
           Privacy Policy
         </a>
         <span>•</span>
-        <a className="hover:text-muted-foreground transition-colors" href="#">
+        <a className="hover:text-[#20395B] transition-colors" href="#">
           Terms of Service
         </a>
       </div>
-    </main>
+    </OnboardingShell>
+  );
+}
+
+// ==========================================
+// Onboarding Shell — split-screen layout
+// ==========================================
+//
+function OnboardingShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen w-full flex bg-background relative overflow-hidden">
+      {/* Left — form panel */}
+      <section className="flex-1 flex flex-col items-center justify-center relative px-4 sm:px-6 lg:px-12 py-16 min-h-screen">
+        {/* Ambient glows */}
+        <div className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden">
+          <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-[#48C5AF]/10 blur-[120px]" />
+          <div className="absolute -bottom-[20%] -right-[10%] w-[40%] h-[40%] rounded-full bg-[#20395B]/10 blur-[100px]" />
+        </div>
+
+        <main className="w-full max-w-xl z-10 relative">{children}</main>
+      </section>
+
+      {/* Right — edge-to-edge imagery with wordmark overlay */}
+      <aside className="hidden xl:flex w-[40%] relative overflow-hidden items-center justify-center">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#20395B] via-[#2C5282] to-[#48C5AF]" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/onboarding-hero.jpg"
+          alt="Premium editorial scene with soft diffused light and curved archways"
+          className="absolute inset-0 w-full h-full object-cover"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = "none";
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#20395B]/40 via-transparent to-[#20395B]/30" />
+
+        {/* Wordmark overlay */}
+        <div className="relative z-10">
+          <span
+            className="text-5xl lg:text-6xl tracking-tight text-white drop-shadow-2xl"
+            style={{ fontFamily: "var(--font-groote)" }}
+          >
+            VisualRef
+          </span>
+        </div>
+      </aside>
+    </div>
   );
 }
