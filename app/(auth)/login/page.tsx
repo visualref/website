@@ -6,7 +6,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Sparkles, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
-import { GoogleLogin } from "@react-oauth/google";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -22,24 +21,12 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, googleLogin } = useAuthStore();
+  const { login,  } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
-    if (!credentialResponse.credential) return;
-    setIsGoogleLoading(true);
-    try {
-      await googleLogin(credentialResponse.credential);
-      toast.success("Welcome back!");
-      router.push("/");
-    } catch {
-      toast.error("Google sign-in failed. Please try again.");
-    } finally {
-      setIsGoogleLoading(false);
-    }
-  };
+  
 
   const {
     register,
@@ -129,12 +116,7 @@ export default function LoginPage() {
                 >
                   Password
                 </Label>
-                <a
-                  className="text-xs font-medium text-primary hover:underline"
-                  href="#"
-                >
-                  Forgot password?
-                </a>
+              
               </div>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -204,28 +186,11 @@ export default function LoginPage() {
               )}
             </Button>
           </form>
-
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-            </div>
           </div>
 
-          {/* Google Sign-In */}
-          <div className="flex justify-center">
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => toast.error("Google sign-in failed.")}
-              size="large"
-              width="100%"
-              text="continue_with"
-            />
-          </div>
-        </div>
+          
+
+          
 
         {/* Card Footer */}
         <div className="px-8 py-4 bg-accent/50 border-t border-border flex items-center justify-between">
