@@ -48,32 +48,50 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      removeToken();
-      if (typeof window !== "undefined") {
-        window.location.href = "/login";
+      const isAuthPage =
+        typeof window !== "undefined" &&
+        (window.location.pathname.startsWith("/login") ||
+          window.location.pathname.startsWith("/register"));
+
+      // Only redirect + clear token if we're NOT already on an auth page.
+      // This prevents a wrong OTP (401) from wiping the OTP input step.
+      if (!isAuthPage) {
+        removeToken();
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
       }
     }
     return Promise.reject(error);
   }
 );
 
+
 // ==========================================
 // Auth API
 // ==========================================
 
 export const authApi = {
-  login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    const { data } = await apiClient.post<ApiResponse<AuthResponse>>(
-      "/api/auth/login",
-      credentials
+  sendOtp: async (email: string): Promise<{ cooldown_remaining: number }> => {
+    const { data } = await apiClient.post<ApiResponse<{ cooldown_remaining: number }>>(
+      "/api/auth/otp/send",
+      { email }
     );
     return data.data;
   },
 
-  register: async (credentials: LoginCredentials & { name: string }): Promise<AuthResponse> => {
+  verifyOtp: async (email: string, otp: string): Promise<AuthResponse> => {
     const { data } = await apiClient.post<ApiResponse<AuthResponse>>(
-      "/api/auth/register",
-      credentials
+      "/api/auth/otp/verify",
+      { email, otp }
+    );
+    return data.data;
+  },
+
+  otpStatus: async (email: string): Promise<{ cooldown_remaining: number }> => {
+    const { data } = await apiClient.get<ApiResponse<{ cooldown_remaining: number }>>(
+      "/api/auth/otp/status",
+      { params: { email } }
     );
     return data.data;
   },
