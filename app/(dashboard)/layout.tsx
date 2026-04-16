@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Navbar } from "@/components/layout/navbar";
@@ -13,29 +13,46 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const { isAuthenticated, isLoading, checkAuth, needsOnboarding } = useAuthStore();
+  const [minLoadingPassed, setMinLoadingPassed] = useState(false);
 
   useEffect(() => {
     checkAuth();
+    const timer = setTimeout(() => setMinLoadingPassed(true), 1500);
+    return () => clearTimeout(timer);
   }, [checkAuth]);
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push("/login");
-    } else if (!isLoading && isAuthenticated && needsOnboarding) {
-      router.push("/onboarding");
-    }
-  }, [isLoading, isAuthenticated, needsOnboarding, router]);
+  const showLoader = isLoading || !minLoadingPassed;
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!showLoader) {
+      if (!isAuthenticated) {
+        router.push("/login");
+      } else if (isAuthenticated && needsOnboarding) {
+        router.push("/onboarding");
+      }
+    }
+  }, [showLoader, isAuthenticated, needsOnboarding, router]);
+
+  if (showLoader) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-blue-400 flex items-center justify-center animate-pulse">
-            <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <p className="text-sm text-muted-foreground">Loading...</p>
+        <style dangerouslySetInnerHTML={{__html: `
+          @keyframes vDropIn {
+            0% { opacity: 0; transform: translateY(-30px); }
+            60% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes textWipeIn {
+            0% { width: 0; opacity: 0; }
+            40% { width: 0; opacity: 0; }
+            100% { width: 8.5rem; opacity: 1; }
+          }
+          .animate-v-drop { animation: vDropIn 1.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+          .animate-text-wipe { animation: textWipeIn 1.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        `}} />
+        <div className="flex items-center justify-center font-bold text-4xl tracking-tight">
+          <div className="animate-v-drop text-primary">V</div>
+          <div className="animate-text-wipe text-[#4ECDC4] whitespace-nowrap overflow-hidden">isualRef</div>
         </div>
       </div>
     );
