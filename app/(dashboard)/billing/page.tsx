@@ -31,7 +31,20 @@ interface Subscription {
   content_used: number;
   current_period_end?: string;
   cancel_at_period_end: boolean;
+  trial_started: boolean;
+  trial_ends_at: string | null;
+  is_in_trial: boolean;
+  trial_days_left: number;
+  razorpay_status: string | null;
+  has_active_subscription: boolean;
 }
+
+const TRIAL_STATUS_COLORS: Record<string, string> = {
+  active: "bg-green-500/10 text-green-400 border-green-500/20",
+  trialing: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  past_due: "bg-red-500/10 text-red-400 border-red-500/20",
+  cancelled: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+};
 
 // ---------------------------------------------------------------------------
 // Single paid plan — Pro at ₹1,000/month
@@ -80,13 +93,6 @@ const freePlan = {
   highlight: false,
 };
 
-const statusColors: Record<string, string> = {
-  ACTIVE: "bg-green-500/10 text-green-400 border-green-500/20",
-  PAST_DUE: "bg-red-500/10 text-red-400 border-red-500/20",
-  CANCELLED: "bg-gray-500/10 text-gray-400 border-gray-500/20",
-  TRIALING: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-};
-
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
@@ -119,10 +125,12 @@ export default function BillingPage() {
     enabled: !!workspaceId,
   });
 
-  const currentPlan = subData?.plan || "FREE";
+  const currentPlan = subData?.has_active_subscription ? "PRO" : subData?.plan || "FREE";
   const usagePercent = subData
     ? Math.round((subData.content_used / subData.content_quota) * 100)
     : 0;
+
+  const displayStatus = subData?.razorpay_status || subData?.status || "ACTIVE";
 
   // ── Razorpay handlers ────────────────────────────────────────────────────
 
@@ -206,9 +214,9 @@ export default function BillingPage() {
                 <h2 className="text-lg font-semibold">Current Plan</h2>
                 <Badge
                   variant="outline"
-                  className={statusColors[subData?.status || "ACTIVE"]}
+                  className={TRIAL_STATUS_COLORS[displayStatus.toLowerCase()] || TRIAL_STATUS_COLORS.active}
                 >
-                  {subData?.status || "ACTIVE"}
+                  {displayStatus.toUpperCase()}
                 </Badge>
                 {subData?.cancel_at_period_end && (
                   <Badge
@@ -220,10 +228,13 @@ export default function BillingPage() {
                 )}
               </div>
               <p className="text-3xl font-bold">
-                {allDisplayPlans.find((p) => p.id === currentPlan)?.name ||
-                  "Free"}
+                {currentPlan === "PRO" && subData?.is_in_trial ? "Pro (Trial)" : (allDisplayPlans.find((p) => p.id === currentPlan)?.name || "Free")}
               </p>
-              {subData?.current_period_end && (
+              {subData?.is_in_trial ? (
+                <p className="text-sm text-blue-400 mt-1">
+                  Trial ends on {subData.trial_ends_at ? new Date(subData.trial_ends_at).toLocaleDateString() : ''} · {subData.trial_days_left} day{subData.trial_days_left !== 1 ? 's' : ''} left
+                </p>
+              ) : subData?.current_period_end && (
                 <p className="text-sm text-muted-foreground mt-1">
                   Next billing date:{" "}
                   {new Date(subData.current_period_end).toLocaleDateString()}

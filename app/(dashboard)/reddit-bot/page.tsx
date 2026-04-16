@@ -17,10 +17,12 @@ import {
   Pencil,
   Check,
   Sparkles,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -63,6 +65,7 @@ import {
   useTriggerProcess,
   useTriggerSearchScan,
 } from "@/hooks/use-api";
+import { useSubscription } from "@/hooks/use-subscription";
 
 function formatTimeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -99,6 +102,9 @@ export default function RedditBotPage() {
   // Data hooks
   const { data: keywordsData, isLoading: keywordsLoading } = useRedditKeywords();
   const { data: subredditsData } = useRedditSubreddits();
+  const { data: subData } = useSubscription();
+
+  const hasAccess = subData?.has_active_subscription || subData?.is_in_trial;
 
   // Mutations
   const addKeyword = useAddRedditKeyword();
@@ -260,7 +266,26 @@ export default function RedditBotPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-[1200px] mx-auto pb-10">
+    <div className="space-y-6 max-w-[1200px] mx-auto pb-10 relative">
+      {!hasAccess && subData !== undefined && (
+        <div className="absolute inset-0 z-50 backdrop-blur-md bg-background/60 flex flex-col items-center justify-center -m-8 h-[calc(100vh-100px)]">
+          <div className="text-center max-w-sm space-y-4 p-8 bg-card border border-border shadow-2xl rounded-2xl">
+            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto border border-primary/20">
+              <Lock className="h-7 w-7 text-primary" />
+            </div>
+            <h3 className="text-xl font-semibold">Start Your Free Trial</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Reddit Bot is available on the Pro plan. Start your 3-day free trial — 
+              no charge today, ₹1,000/month after.
+            </p>
+            <Button asChild size="lg" className="w-full shadow-lg shadow-primary/20">
+              <Link href="/start-trial">Start Free Trial →</Link>
+            </Button>
+            <p className="text-xs text-muted-foreground">Cancel anytime before trial ends</p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
