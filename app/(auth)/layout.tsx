@@ -2,6 +2,7 @@
 
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Layers, Sparkles, FolderOpen } from "lucide-react";
+import { Logo } from "@/components/ui/logo";
 
 const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
@@ -31,12 +32,7 @@ export default function AuthLayout({
 
           {/* Wordmark + tagline top-left — only place using logo font */}
           <div className="absolute top-6 left-6 lg:top-8 lg:left-10 z-20">
-            <span
-              className="text-2xl tracking-tight text-[#20395B] block"
-              style={{ fontFamily: "var(--font-groote)" }}
-            >
-              VisualRef
-            </span>
+            <Logo className="text-2xl tracking-tight text-[#20395B] block" />
             <span className="text-[11px] text-[#64748b] tracking-wide mt-0.5 block">
               Manage your visual assets intelligently
             </span>

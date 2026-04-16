@@ -43,16 +43,19 @@ export default function DashboardLayout({
             100% { opacity: 1; transform: translateY(0); }
           }
           @keyframes textWipeIn {
-            0% { width: 0; opacity: 0; }
-            40% { width: 0; opacity: 0; }
-            100% { width: 8.5rem; opacity: 1; }
+            0% { max-width: 0; opacity: 0; }
+            40% { max-width: 0; opacity: 0; }
+            100% { max-width: 14rem; opacity: 1; }
           }
           .animate-v-drop { animation: vDropIn 1.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
           .animate-text-wipe { animation: textWipeIn 1.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
         `}} />
-        <div className="flex items-center justify-center font-bold text-4xl tracking-tight">
-          <div className="animate-v-drop text-primary">V</div>
-          <div className="animate-text-wipe text-[#4ECDC4] whitespace-nowrap overflow-hidden">isualRef</div>
+        <div 
+          className="flex items-center justify-center text-4xl tracking-tight text-[#20395B]"
+          style={{ fontFamily: "var(--font-groote)" }}
+        >
+          <div className="animate-v-drop">V</div>
+          <div className="animate-text-wipe whitespace-nowrap overflow-hidden pr-2">isualRef</div>
         </div>
       </div>
     );
