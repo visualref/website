@@ -1,16 +1,16 @@
 import { create } from 'zustand';
 import { authApi } from '@/lib/api-client';
 import { setToken, removeToken, getToken } from '@/lib/auth';
-import type { User, LoginCredentials } from '@/types';
+import type { User } from '@/types';
 
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   needsOnboarding: boolean;
-  login: (credentials: LoginCredentials) => Promise<void>;
+  sendOtp: (email: string) => Promise<{ cooldown_remaining: number }>;
+  verifyOtp: (email: string, otp: string) => Promise<void>;
   googleLogin: (idToken: string) => Promise<void>;
-  register: (data: LoginCredentials & { name: string }) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   setUser: (user: User) => void;
@@ -44,9 +44,13 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  login: async (credentials: LoginCredentials) => {
+  sendOtp: async (email: string) => {
+    return authApi.sendOtp(email);
+  },
+
+  verifyOtp: async (email: string, otp: string) => {
     try {
-      const response = await authApi.login(credentials);
+      const response = await authApi.verifyOtp(email, otp);
       setToken(response.token);
       set({
         user: response.user,
@@ -54,7 +58,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         needsOnboarding: computeNeedsOnboarding(response.user),
       });
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error('OTP verification failed:', error);
       throw error;
     }
   },
@@ -70,21 +74,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
     } catch (error) {
       console.error('Google login failed:', error);
-      throw error;
-    }
-  },
-
-  register: async (data: LoginCredentials & { name: string }) => {
-    try {
-      const response = await authApi.register(data);
-      setToken(response.token);
-      set({
-        user: response.user,
-        isAuthenticated: true,
-        needsOnboarding: computeNeedsOnboarding(response.user),
-      });
-    } catch (error) {
-      console.error('Registration failed:', error);
       throw error;
     }
   },
@@ -124,4 +113,3 @@ export const useAuthStore = create<AuthState>((set) => ({
     needsOnboarding: computeNeedsOnboarding(user),
   }),
 }));
-
