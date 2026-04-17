@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Navbar } from "@/components/layout/navbar";
@@ -16,35 +16,49 @@ export default function DashboardLayout({
   const router = useRouter();
   const { isAuthenticated, isLoading, checkAuth, needsOnboarding } = useAuthStore();
   const { data: subscription, isLoading: isSubLoading, isError } = useSubscription();
+  const [minLoadingPassed, setMinLoadingPassed] = useState(false);
 
   useEffect(() => {
     checkAuth();
+    const timer = setTimeout(() => setMinLoadingPassed(true), 1500);
+    return () => clearTimeout(timer);
   }, [checkAuth]);
 
+  const showLoader = isLoading || !minLoadingPassed;
+
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push("/login");
-    } else if (!isLoading && isAuthenticated && needsOnboarding) {
-      router.push("/onboarding");
-    } else if (!isLoading && isAuthenticated && !needsOnboarding && !isSubLoading) {
-      // Strictly enforce trial: if there's a fetching error, or subscription object is somehow missing, 
-      // or if they just don't have an active subscription, push them to the trial screen.
-      if (isError || !subscription || !subscription.has_active_subscription) {
-        router.push("/start-trial");
+    if (!showLoader) {
+      if (!isAuthenticated) {
+        router.push("/login");
+      } else if (isAuthenticated && needsOnboarding) {
+        router.push("/onboarding");
       }
     }
-  }, [isLoading, isAuthenticated, needsOnboarding, router, isSubLoading, subscription, isError]);
+  }, [showLoader, isAuthenticated, needsOnboarding, router]);
 
-  if (isLoading || isSubLoading) {
+  if (showLoader) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-blue-400 flex items-center justify-center animate-pulse">
-            <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <p className="text-sm text-muted-foreground">Loading...</p>
+        <style dangerouslySetInnerHTML={{__html: `
+          @keyframes vDropIn {
+            0% { opacity: 0; transform: translateY(-30px); }
+            60% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes textWipeIn {
+            0% { max-width: 0; opacity: 0; }
+            40% { max-width: 0; opacity: 0; }
+            100% { max-width: 14rem; opacity: 1; }
+          }
+          .animate-v-drop { animation: vDropIn 1.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+          .animate-text-wipe { animation: textWipeIn 1.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        `}} />
+        <div 
+          className="flex items-center justify-center text-4xl tracking-tight text-[#20395B]"
+          style={{ fontFamily: "var(--font-groote)" }}
+        >
+          <div className="animate-v-drop">V</div>
+          <div className="animate-text-wipe whitespace-nowrap overflow-hidden pr-2">isualRef</div>
         </div>
       </div>
     );

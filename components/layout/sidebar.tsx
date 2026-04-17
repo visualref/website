@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { Logo } from "@/components/ui/logo";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -60,14 +60,7 @@ export function Sidebar() {
     <aside className="w-64 h-full bg-card border-r border-border flex flex-col shrink-0">
       {/* Logo */}
       <div className="h-16 flex items-center px-6 border-b border-border">
-        <Image
-          src="/visualref.png"
-          alt="Visualref"
-          width={32}
-          height={32}
-          className="mr-3 rounded-lg"
-        />
-        <span className="text-lg font-bold tracking-tight">Visualref</span>
+        <Logo className="text-2xl text-[#20395B] dark:text-white block truncate" />
       </div>
 
       {/* Navigation */}
