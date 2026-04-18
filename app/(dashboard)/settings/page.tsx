@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Globe, Terminal, Ghost, Loader2, CheckCircle2, Trash2, LayoutTemplate, ShoppingCart, Monitor, User, Mail, Shield, Building2, Webhook, Plus, ExternalLink, Search } from "lucide-react";
 import { integrationsApi, competitorsApi } from "@/lib/api-client";
 import { useAuthStore } from "@/hooks/use-auth";
+import { useSubscription } from "@/hooks/use-subscription";
 import { toast } from "sonner";
 import type { Competitor } from "@/types";
 
@@ -113,16 +114,22 @@ export default function SettingsPage() {
   const [devToApiKey, setDevToApiKey] = useState("");
   const [ghostUrl, setGhostUrl] = useState("");
   const [ghostAdminApiKey, setGhostAdminApiKey] = useState("");
+  const [ghostContentApiKey, setGhostContentApiKey] = useState("");
+  const [ghostAuthor, setGhostAuthor] = useState("");
+  const [ghostPublishStatus, setGhostPublishStatus] = useState<"publish" | "draft">("publish");
   const [wpUrl, setWpUrl] = useState("");
-  const [wpUsername, setWpUsername] = useState("");
-  const [wpAppPassword, setWpAppPassword] = useState("");
-  const [webflowApiKey, setWebflowApiKey] = useState("");
-  const [webflowCollectionId, setWebflowCollectionId] = useState("");
-  const [shopifyShopName, setShopifyShopName] = useState("");
-  const [shopifyAccessToken, setShopifyAccessToken] = useState("");
+  const [wpIntegrationKey, setWpIntegrationKey] = useState("");
+  const [webflowApiToken, setWebflowApiToken] = useState("");
+  const [webflowPublishStatus, setWebflowPublishStatus] = useState<"publish" | "draft">("publish");
+  const [shopifyStoreName, setShopifyStoreName] = useState("");
+  const [shopifyClientId, setShopifyClientId] = useState("");
+  const [shopifyClientSecret, setShopifyClientSecret] = useState("");
   const [shopifyBlogId, setShopifyBlogId] = useState("");
+  const [shopifyAuthor, setShopifyAuthor] = useState("");
+  const [shopifyPublishStatus, setShopifyPublishStatus] = useState<"publish" | "draft">("publish");
   const [wixSiteId, setWixSiteId] = useState("");
   const [wixApiKey, setWixApiKey] = useState("");
+  const [wixPublishStatus, setWixPublishStatus] = useState<"publish" | "draft">("publish");
 
   const [isSaving, setIsSaving] = useState(false);
   const [deletingPlatform, setDeletingPlatform] = useState<string | null>(null);
@@ -182,21 +189,35 @@ export default function SettingsPage() {
     setDevToApiKey("");
     setGhostUrl("");
     setGhostAdminApiKey("");
+    setGhostContentApiKey("");
+    setGhostAuthor("");
+    setGhostPublishStatus("publish");
     setWpUrl("");
-    setWpUsername("");
-    setWpAppPassword("");
-    setWebflowApiKey("");
-    setWebflowCollectionId("");
-    setShopifyShopName("");
-    setShopifyAccessToken("");
+    setWpIntegrationKey("");
+    setWebflowApiToken("");
+    setWebflowPublishStatus("publish");
+    setShopifyStoreName("");
+    setShopifyClientId("");
+    setShopifyClientSecret("");
     setShopifyBlogId("");
+    setShopifyAuthor("");
+    setShopifyPublishStatus("publish");
     setWixSiteId("");
     setWixApiKey("");
+    setWixPublishStatus("publish");
     setIsIntegrationsDialogOpen(true);
   };
 
+  const { data: subData } = useSubscription();
+  const hasAccess = subData?.has_active_subscription || subData?.is_in_trial;
+
   const handleSaveIntegration = async () => {
     if (!selectedIntegration) return;
+
+    if (!hasAccess) {
+      toast.error("Upgrade your plan to connect integrations.");
+      return;
+    }
 
     let credentials: any = {};
     if (selectedIntegration === "dev-to") {
@@ -206,35 +227,48 @@ export default function SettingsPage() {
       }
       credentials = { apiKey: devToApiKey };
     } else if (selectedIntegration === "ghost") {
-      if (!ghostUrl || !ghostAdminApiKey) {
-        toast.error("URL and Admin API Key are required");
+      if (!ghostUrl || !ghostAdminApiKey || !ghostContentApiKey) {
+        toast.error("URL, Admin API Key, and Content API Key are required");
         return;
       }
-      credentials = { url: ghostUrl, adminApiKey: ghostAdminApiKey };
+      credentials = { 
+        url: ghostUrl, 
+        adminApiKey: ghostAdminApiKey,
+        contentApiKey: ghostContentApiKey,
+        author: ghostAuthor || undefined,
+        publishStatus: ghostPublishStatus
+      };
     } else if (selectedIntegration === "wordpress") {
-      if (!wpUrl || !wpUsername || !wpAppPassword) {
-        toast.error("All fields are required");
+      if (!wpUrl || !wpIntegrationKey) {
+        toast.error("Site URL and Integration Key are required");
         return;
       }
-      credentials = { url: wpUrl, username: wpUsername, appPassword: wpAppPassword };
+      credentials = { url: wpUrl, integrationKey: wpIntegrationKey };
     } else if (selectedIntegration === "webflow") {
-      if (!webflowApiKey || !webflowCollectionId) {
-        toast.error("All fields are required");
+      if (!webflowApiToken) {
+        toast.error("API Token is required");
         return;
       }
-      credentials = { apiKey: webflowApiKey, collectionId: webflowCollectionId };
+      credentials = { apiToken: webflowApiToken, publishStatus: webflowPublishStatus };
     } else if (selectedIntegration === "shopify") {
-      if (!shopifyShopName || !shopifyAccessToken || !shopifyBlogId) {
-        toast.error("All fields are required");
+      if (!shopifyStoreName || !shopifyClientId || !shopifyClientSecret || !shopifyBlogId) {
+        toast.error("Store Name, Client ID, Client Secret, and Blog ID are required");
         return;
       }
-      credentials = { shopName: shopifyShopName, accessToken: shopifyAccessToken, blogId: shopifyBlogId };
+      credentials = { 
+        storeName: shopifyStoreName, 
+        clientId: shopifyClientId,
+        clientSecret: shopifyClientSecret,
+        blogId: shopifyBlogId,
+        author: shopifyAuthor || undefined,
+        publishStatus: shopifyPublishStatus
+      };
     } else if (selectedIntegration === "wix") {
       if (!wixSiteId || !wixApiKey) {
         toast.error("Site ID and API Key are required");
         return;
       }
-      credentials = { siteId: wixSiteId, apiKey: wixApiKey };
+      credentials = { siteId: wixSiteId, apiKey: wixApiKey, publishStatus: wixPublishStatus };
     }
 
     setIsSaving(true);
@@ -252,6 +286,8 @@ export default function SettingsPage() {
       const fallback =
         status === 400 || status === 401 || status === 403
           ? "Invalid credentials. Please double-check and try again."
+          : status === 402
+          ? "Upgrade your plan to connect integrations."
           : "Failed to verify and save integration credentials.";
       toast.error(extractApiError(error, fallback));
     } finally {
@@ -439,6 +475,10 @@ export default function SettingsPage() {
                   <Card 
                     key={integration.id}
                     onClick={() => {
+                      if (!hasAccess && integration.id !== "google_search_console") {
+                        toast.error("Upgrade your plan to connect integrations.");
+                        return;
+                      }
                       if (integration.id === "google_search_console") {
                         if (!isConfigured) handleConnectGoogle();
                       } else if (!isDisabled) {
@@ -624,6 +664,37 @@ export default function SettingsPage() {
                     placeholder="Your Ghost Admin API Key"
                   />
                 </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="contentApiKey">Content API Key</Label>
+                  <Input
+                    id="contentApiKey"
+                    type="password"
+                    value={ghostContentApiKey}
+                    onChange={(e) => setGhostContentApiKey(e.target.value)}
+                    placeholder="Your Ghost Content API Key"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="author">Author Name (optional)</Label>
+                  <Input
+                    id="author"
+                    value={ghostAuthor}
+                    onChange={(e) => setGhostAuthor(e.target.value)}
+                    placeholder="Post author name"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="publishStatus">Publish Status</Label>
+                  <select
+                    id="publishStatus"
+                    value={ghostPublishStatus}
+                    onChange={(e) => setGhostPublishStatus(e.target.value as "publish" | "draft")}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="publish">Publish Immediately</option>
+                    <option value="draft">Draft</option>
+                  </select>
+                </div>
               </>
             )}
             {selectedIntegration === "wordpress" && (
@@ -638,68 +709,75 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="wpUsername">Username</Label>
+                  <Label htmlFor="wpIntegrationKey">Integration Key</Label>
                   <Input
-                    id="wpUsername"
-                    value={wpUsername}
-                    onChange={(e) => setWpUsername(e.target.value)}
-                    placeholder="Admin Username or Email"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="wpAppPassword">Application Password</Label>
-                  <Input
-                    id="wpAppPassword"
+                    id="wpIntegrationKey"
                     type="password"
-                    value={wpAppPassword}
-                    onChange={(e) => setWpAppPassword(e.target.value)}
-                    placeholder="Your Application Password"
+                    value={wpIntegrationKey}
+                    onChange={(e) => setWpIntegrationKey(e.target.value)}
+                    placeholder="Integration Key from WordPress plugin"
                   />
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Install the VisualRef Integration plugin in your WordPress admin to get the Integration Key.
+                </p>
               </>
             )}
             {selectedIntegration === "webflow" && (
               <>
                 <div className="grid gap-2">
-                  <Label htmlFor="webflowApiKey">API Key</Label>
+                  <Label htmlFor="webflowApiToken">API Token</Label>
                   <Input
-                    id="webflowApiKey"
+                    id="webflowApiToken"
                     type="password"
-                    value={webflowApiKey}
-                    onChange={(e) => setWebflowApiKey(e.target.value)}
-                    placeholder="Your Webflow API Key"
+                    value={webflowApiToken}
+                    onChange={(e) => setWebflowApiToken(e.target.value)}
+                    placeholder="Your Webflow API Token"
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="webflowCollectionId">Collection ID</Label>
-                  <Input
-                    id="webflowCollectionId"
-                    value={webflowCollectionId}
-                    onChange={(e) => setWebflowCollectionId(e.target.value)}
-                    placeholder="E.g., 5f7b...1234"
-                  />
+                  <Label htmlFor="webflowPublishStatus">Publish Status</Label>
+                  <select
+                    id="webflowPublishStatus"
+                    value={webflowPublishStatus}
+                    onChange={(e) => setWebflowPublishStatus(e.target.value as "publish" | "draft")}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="publish">Publish Immediately</option>
+                    <option value="draft">Draft</option>
+                  </select>
                 </div>
               </>
             )}
             {selectedIntegration === "shopify" && (
               <>
                 <div className="grid gap-2">
-                  <Label htmlFor="shopifyShopName">Shop Name (Domain)</Label>
+                  <Label htmlFor="shopifyStoreName">Store Name (Domain)</Label>
                   <Input
-                    id="shopifyShopName"
-                    value={shopifyShopName}
-                    onChange={(e) => setShopifyShopName(e.target.value)}
+                    id="shopifyStoreName"
+                    value={shopifyStoreName}
+                    onChange={(e) => setShopifyStoreName(e.target.value)}
                     placeholder="e.g., your-store.myshopify.com"
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="shopifyAccessToken">Admin API Access Token</Label>
+                  <Label htmlFor="shopifyClientId">Client ID</Label>
                   <Input
-                    id="shopifyAccessToken"
+                    id="shopifyClientId"
                     type="password"
-                    value={shopifyAccessToken}
-                    onChange={(e) => setShopifyAccessToken(e.target.value)}
-                    placeholder="shpat_..."
+                    value={shopifyClientId}
+                    onChange={(e) => setShopifyClientId(e.target.value)}
+                    placeholder="Your Shopify Client ID"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="shopifyClientSecret">Client Secret</Label>
+                  <Input
+                    id="shopifyClientSecret"
+                    type="password"
+                    value={shopifyClientSecret}
+                    onChange={(e) => setShopifyClientSecret(e.target.value)}
+                    placeholder="Your Shopify Client Secret"
                   />
                 </div>
                 <div className="grid gap-2">
@@ -710,6 +788,27 @@ export default function SettingsPage() {
                     onChange={(e) => setShopifyBlogId(e.target.value)}
                     placeholder="Your Shopify Blog ID"
                   />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="shopifyAuthor">Author Name (optional)</Label>
+                  <Input
+                    id="shopifyAuthor"
+                    value={shopifyAuthor}
+                    onChange={(e) => setShopifyAuthor(e.target.value)}
+                    placeholder="Post author name"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="shopifyPublishStatus">Publish Status</Label>
+                  <select
+                    id="shopifyPublishStatus"
+                    value={shopifyPublishStatus}
+                    onChange={(e) => setShopifyPublishStatus(e.target.value as "publish" | "draft")}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="publish">Publish Immediately</option>
+                    <option value="draft">Draft</option>
+                  </select>
                 </div>
               </>
             )}
@@ -733,6 +832,18 @@ export default function SettingsPage() {
                     onChange={(e) => setWixApiKey(e.target.value)}
                     placeholder="Your Wix API Key"
                   />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="wixPublishStatus">Publish Status</Label>
+                  <select
+                    id="wixPublishStatus"
+                    value={wixPublishStatus}
+                    onChange={(e) => setWixPublishStatus(e.target.value as "publish" | "draft")}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="publish">Publish Immediately</option>
+                    <option value="draft">Draft</option>
+                  </select>
                 </div>
               </>
             )}
