@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Lock, Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -85,8 +86,8 @@ export default function StartTrialPage() {
       <div className="w-full max-w-md space-y-8">
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto shadow-lg shadow-primary/10">
-            <Sparkles className="h-7 w-7 text-primary" />
+          <div className="w-16 h-16 rounded-2xl overflow-hidden border shadow-lg mx-auto bg-white flex items-center justify-center">
+            <Image src="/visualref-logo.png" alt="VisualRef" width={64} height={64} className="w-full h-full object-cover" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight mt-4">
             Start your free trial
