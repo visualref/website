@@ -1,0 +1,66 @@
+.vr-settings-wrap {
+    max-width: 800px;
+}
+
+.vr-settings-wrap h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+.vr-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #ccc;
+    margin-bottom: 20px;
+}
+
+.vr-logo svg {
+    display: block;
+}
+
+.vr-key-section {
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #ccc;
+    margin-bottom: 20px;
+}
+
+.vr-key-display {
+    display: flex;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.vr-key-display code {
+    flex: 1;
+    padding: 10px;
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    font-size: 12px;
+    word-break: break-all;
+}
+
+.vr-key-actions {
+    margin-top: 10px;
+}
+
+.vr-connection-test {
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #ccc;
+    margin: 20px 0;
+}
+
+.vr-docs-link {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f0f0f0;
+}
+
+.vr-tags-select {
+    min-width: 200px;
+    min-height: 100px;
+}
