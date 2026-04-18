@@ -118,7 +118,8 @@ export default function SettingsPage() {
   const [ghostAuthor, setGhostAuthor] = useState("");
   const [ghostPublishStatus, setGhostPublishStatus] = useState<"publish" | "draft">("publish");
   const [wpUrl, setWpUrl] = useState("");
-  const [wpIntegrationKey, setWpIntegrationKey] = useState("");
+  const [wpUsername, setWpUsername] = useState("");
+  const [wpAppPassword, setWpAppPassword] = useState("");
   const [webflowApiToken, setWebflowApiToken] = useState("");
   const [webflowPublishStatus, setWebflowPublishStatus] = useState<"publish" | "draft">("publish");
   const [shopifyStoreName, setShopifyStoreName] = useState("");
@@ -193,7 +194,8 @@ export default function SettingsPage() {
     setGhostAuthor("");
     setGhostPublishStatus("publish");
     setWpUrl("");
-    setWpIntegrationKey("");
+    setWpUsername("");
+    setWpAppPassword("");
     setWebflowApiToken("");
     setWebflowPublishStatus("publish");
     setShopifyStoreName("");
@@ -239,11 +241,11 @@ export default function SettingsPage() {
         publishStatus: ghostPublishStatus
       };
     } else if (selectedIntegration === "wordpress") {
-      if (!wpUrl || !wpIntegrationKey) {
-        toast.error("Site URL and Integration Key are required");
+      if (!wpUrl || !wpUsername || !wpAppPassword) {
+        toast.error("Site URL, Username, and App Password are required");
         return;
       }
-      credentials = { url: wpUrl, integrationKey: wpIntegrationKey };
+      credentials = { url: wpUrl, username: wpUsername, appPassword: wpAppPassword };
     } else if (selectedIntegration === "webflow") {
       if (!webflowApiToken) {
         toast.error("API Token is required");
@@ -709,17 +711,27 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="wpIntegrationKey">Integration Key</Label>
+                  <Label htmlFor="wpUsername">WordPress Username</Label>
                   <Input
-                    id="wpIntegrationKey"
+                    id="wpUsername"
+                    type="text"
+                    value={wpUsername}
+                    onChange={(e) => setWpUsername(e.target.value)}
+                    placeholder="Your WordPress username"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="wpAppPassword">Application Password</Label>
+                  <Input
+                    id="wpAppPassword"
                     type="password"
-                    value={wpIntegrationKey}
-                    onChange={(e) => setWpIntegrationKey(e.target.value)}
-                    placeholder="Integration Key from WordPress plugin"
+                    value={wpAppPassword}
+                    onChange={(e) => setWpAppPassword(e.target.value)}
+                    placeholder="WordPress Application Password"
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Install the VisualRef Integration plugin in your WordPress admin to get the Integration Key.
+                  Generate an Application Password in your WordPress Users > Profile section.
                 </p>
               </>
             )}
