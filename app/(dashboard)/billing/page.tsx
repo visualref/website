@@ -136,12 +136,14 @@ export default function BillingPage() {
 
   const handleCreateSubscription = async (
     planId: string,
-    billingCycle: "monthly" | "annual"
+    billingCycle: "monthly" | "annual",
+    promoCode?: string
   ): Promise<{ subscription_id: string; key_id: string }> => {
     const { data } = await apiClient.post("/api/subscriptions/create", {
       plan_id: planId,
       billing_cycle: billingCycle,
       workspace_id: workspaceId,
+      promo_code: promoCode,
     });
     return data.data; // { subscription_id, key_id }
   };
@@ -400,6 +402,7 @@ export default function BillingPage() {
           plan={modalPlan}
           userEmail={(user as any)?.email}
           userName={(user as any)?.full_name || (user as any)?.name}
+          isTrialEligible={subData ? !subData.trial_started : false}
           onCreateSubscription={handleCreateSubscription}
           onVerifyPayment={handleVerifyPayment}
           onPaymentError={handlePaymentError}
