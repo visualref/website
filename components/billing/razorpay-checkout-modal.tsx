@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { X, CheckCircle2, Shield, Lock, Zap, Crown, Building2, CreditCard, ArrowRight, Loader2 } from "lucide-react";
+import { Logo } from "@/components/ui/logo";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -22,6 +23,7 @@ interface RazorpayCheckoutModalProps {
   plan: RazorpayPlan;
   userEmail?: string;
   userName?: string;
+  isTrialEligible?: boolean;
   /** Called when the frontend subscription_id is obtained and checkout opens */
   onCheckoutOpen?: (subscriptionId: string) => void;
   /**
@@ -29,7 +31,7 @@ interface RazorpayCheckoutModalProps {
    * Should call your backend `POST /api/subscriptions/create` and return { subscription_id, key_id }.
    * Frontend will then open the Razorpay checkout with subscription_id.
    */
-  onCreateSubscription: (planId: string, billingCycle: "monthly" | "annual") => Promise<{
+  onCreateSubscription: (planId: string, billingCycle: "monthly" | "annual", promoCode?: string) => Promise<{
     subscription_id: string;
     key_id: string;
   }>;
@@ -90,12 +92,16 @@ export function RazorpayCheckoutModal({
   plan,
   userEmail,
   userName,
+  isTrialEligible,
   onCreateSubscription,
   onVerifyPayment,
   onPaymentError,
 }: RazorpayCheckoutModalProps) {
-  const [billing, setBilling] = useState<"monthly" | "annual">("annual");
+  const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
   const [loading, setLoading] = useState(false);
+  const [promoCodeInput, setPromoCodeInput] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<{code: string; discountPercent: number} | null>(null);
+  const [promoError, setPromoError] = useState("");
   const overlayRef = useRef<HTMLDivElement>(null);
 
   // Lock body scroll when open
@@ -117,12 +123,34 @@ export function RazorpayCheckoutModal({
 
   if (!open) return null;
 
-  const basePrice = billing === "annual" ? plan.annualPrice : plan.monthlyPrice * 12;
-  const gst = Math.round(basePrice * GST_RATE);
-  const total = basePrice + gst;
+  const basePrice = billing === "annual" ? plan.annualPrice : plan.monthlyPrice;
+  const discountAmount = appliedPromo ? Math.round(basePrice * (appliedPromo.discountPercent / 100)) : 0;
+  const priceAfterDiscount = basePrice - discountAmount;
+  const gst = Math.round(priceAfterDiscount * GST_RATE);
+  const total = priceAfterDiscount + gst;
   const annualSaving = Math.round(((plan.monthlyPrice * 12 - plan.annualPrice) / (plan.monthlyPrice * 12)) * 100);
 
   const PlanIcon = PLAN_ICONS[plan.id] || CreditCard;
+
+  const handleApplyPromo = () => {
+    const code = promoCodeInput.trim().toUpperCase();
+    if (code === "LAUNCH50") {
+      setAppliedPromo({ code, discountPercent: 50 });
+      setPromoError("");
+    } else if (code === "EARLYBIRD") {
+      setAppliedPromo({ code, discountPercent: 20 });
+      setPromoError("");
+    } else {
+      setAppliedPromo(null);
+      setPromoError("Invalid or expired promo code");
+    }
+  };
+
+  const clearPromo = () => {
+    setPromoCodeInput("");
+    setAppliedPromo(null);
+    setPromoError("");
+  };
 
   const handleConfirmPay = async () => {
     setLoading(true);
@@ -130,7 +158,7 @@ export function RazorpayCheckoutModal({
       const loaded = await loadRazorpayScript();
       if (!loaded) throw new Error("Failed to load Razorpay SDK");
 
-      const { subscription_id, key_id } = await onCreateSubscription(plan.razorpayPlanId, billing);
+      const { subscription_id, key_id } = await onCreateSubscription(plan.razorpayPlanId, billing, appliedPromo?.code);
 
       const rzp = new (window as any).Razorpay({
         key: key_id,
@@ -207,14 +235,8 @@ export function RazorpayCheckoutModal({
 
           <div className="relative z-10 flex flex-col h-full">
             {/* Brand */}
-            <div className="flex items-center gap-3 mb-10">
-              <div
-                className="flex items-center justify-center rounded-xl"
-                style={{ width: 38, height: 38, background: "#0d9488", boxShadow: "0 4px 16px rgba(13,148,136,0.4)" }}
-              >
-                <Zap className="text-white" size={18} strokeWidth={2.5} />
-              </div>
-              <span className="text-white font-bold text-lg tracking-tight">VisualRef</span>
+            <div className="mb-10">
+              <Logo className="text-white font-bold text-2xl tracking-tight" />
             </div>
 
             {/* Plan title */}
@@ -276,42 +298,6 @@ export function RazorpayCheckoutModal({
           >
             <h3 className="font-bold text-slate-900" style={{ fontSize: "1.1rem" }}>Payment Details</h3>
 
-            {/* Billing toggle */}
-            <div
-              className="relative flex items-center rounded-xl p-1"
-              style={{ background: "#f1f5f9", width: 210 }}
-            >
-              <div
-                className="absolute top-1 bottom-1 rounded-[10px] bg-white transition-all duration-200"
-                style={{
-                  left: billing === "monthly" ? 4 : "calc(50% + 2px)",
-                  width: "calc(50% - 6px)",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.12)",
-                }}
-              />
-              <button
-                className="relative z-10 flex-1 py-1.5 text-[11px] font-black uppercase tracking-wider transition-colors duration-150"
-                style={{ color: billing === "monthly" ? "#0f172a" : "#94a3b8" }}
-                onClick={() => setBilling("monthly")}
-              >
-                Monthly
-              </button>
-              <button
-                className="relative z-10 flex-1 py-1.5 text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition-colors duration-150"
-                style={{ color: billing === "annual" ? "#0f172a" : "#94a3b8" }}
-                onClick={() => setBilling("annual")}
-              >
-                Annual
-                {annualSaving > 0 && (
-                  <span
-                    className="rounded px-1.5 py-0.5 text-[8px] font-black uppercase"
-                    style={{ background: "#f0fdfa", color: "#0f766e" }}
-                  >
-                    Save {annualSaving}%
-                  </span>
-                )}
-              </button>
-            </div>
           </div>
 
           {/* Order summary */}
@@ -334,20 +320,62 @@ export function RazorpayCheckoutModal({
                   <span className="text-sm font-black" style={{ color: "#0d9488" }}>FREE</span>
                 </div>
               </div>
+              
+              {appliedPromo && (
+                <div className="flex justify-between items-baseline">
+                  <span className="text-sm font-medium text-emerald-600 flex items-center gap-1">
+                    Promo Code ({appliedPromo.code})
+                    <button onClick={clearPromo} className="text-slate-400 hover:text-slate-600 ml-1">
+                      <X size={12} strokeWidth={3} />
+                    </button>
+                  </span>
+                  <span className="text-sm font-bold text-emerald-600 tabular-nums">
+                    -{formatINR(discountAmount)}
+                  </span>
+                </div>
+              )}
+
               <div className="flex justify-between items-baseline">
                 <span className="text-sm font-medium text-slate-500">GST (18%)</span>
                 <span className="text-sm font-medium text-slate-700 tabular-nums">{formatINR(gst)}</span>
               </div>
+              
+              {!appliedPromo && (
+                <div className="pt-2">
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      placeholder="Promo Code" 
+                      value={promoCodeInput}
+                      onChange={(e) => setPromoCodeInput(e.target.value)}
+                      className="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm uppercase outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all font-medium text-slate-700" 
+                    />
+                    <button 
+                      onClick={handleApplyPromo}
+                      disabled={!promoCodeInput.trim()}
+                      className="rounded-lg bg-slate-900 px-4 py-1.5 text-sm font-bold text-white transition-all hover:bg-slate-800 disabled:opacity-50"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                  {promoError && (
+                    <p className="mt-1.5 text-xs font-medium text-red-500">{promoError}</p>
+                  )}
+                </div>
+              )}
+
               <div
                 className="flex justify-between items-center pt-5"
                 style={{ borderTop: "1px solid #f1f5f9" }}
               >
-                <span className="font-bold text-slate-900">Total Due Today</span>
+                <span className="font-bold text-slate-900">
+                  {isTrialEligible ? "Due Today (3-Day Trial)" : "Total Due Today"}
+                </span>
                 <span
                   className="font-black tabular-nums tracking-tight"
                   style={{ fontSize: "1.55rem", color: "#0f172a" }}
                 >
-                  {formatINR(total)}
+                  {isTrialEligible ? "₹0" : formatINR(total)}
                 </span>
               </div>
             </div>
@@ -409,7 +437,7 @@ export function RazorpayCheckoutModal({
                 </>
               ) : (
                 <>
-                  Confirm &amp; Pay {formatINR(total)}
+                  {isTrialEligible ? "Start 3-Day Free Trial" : `Confirm & Pay ${formatINR(total)}`}
                   <ArrowRight size={16} style={{ color: "#2dd4bf" }} />
                 </>
               )}
