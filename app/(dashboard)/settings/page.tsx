@@ -52,9 +52,15 @@ const INTEGRATIONS_DEFS = [
   },
   {
     id: "api",
-    name: "Api",
-    icon: Webhook,
+    name: "Custom API",
+    icon: Terminal,
     iconColor: "text-zinc-600 dark:text-zinc-400",
+  },
+  {
+    id: "webhook",
+    name: "Webhook",
+    icon: Webhook,
+    iconColor: "text-purple-600 dark:text-purple-400",
   },
   {
     id: "dev-to",
@@ -137,6 +143,12 @@ export default function SettingsPage() {
   const [wixSiteId, setWixSiteId] = useState("");
   const [wixApiKey, setWixApiKey] = useState("");
   const [wixPublishStatus, setWixPublishStatus] = useState<"publish" | "draft">("publish");
+
+  // Webhook & API state
+  const [webhookUrl, setWebhookUrl] = useState("");
+  const [webhookSecret, setWebhookSecret] = useState("");
+  const [generatedApiToken, setGeneratedApiToken] = useState<string | null>(null);
+  const [isGeneratingToken, setIsGeneratingToken] = useState(false);
 
   // Blog Hosting state
   const [blogSubdomain, setBlogSubdomain] = useState("");
@@ -222,11 +234,47 @@ export default function SettingsPage() {
     setWixSiteId("");
     setWixApiKey("");
     setWixPublishStatus("publish");
+    setWebhookUrl("");
+    setWebhookSecret("");
+    setGeneratedApiToken(null);
     setBlogSubdomain("");
     setBlogBrandColor("#6366f1");
     setBlogBrandLogo("");
     setDnsVerified(false);
+
+    if (id === "api") {
+      // Find token if it exists
+      setGeneratedApiToken(null); // Reset first
+      // Because state update is deferred, we'll use a functional approach or useEffect, 
+      // but actually activeIntegrations is already loaded.
+      const current = activeIntegrations.find((i: any) => i.platform === "api");
+      if (current?.credentials?.token) {
+        setGeneratedApiToken(current.credentials.token);
+      }
+    }
+
     setIsIntegrationsDialogOpen(true);
+  };
+
+  const generateApiToken = async () => {
+    if (!hasAccess) {
+      toast.error("Upgrade your plan to generate API keys.");
+      return;
+    }
+    
+    setIsGeneratingToken(true);
+    try {
+      const response = await integrationsApi.generateApiToken();
+      if (response && response.token) {
+         setGeneratedApiToken(response.token);
+         toast.success("API Token generated successfully!");
+         fetchIntegrations();
+      }
+    } catch (error: any) {
+      toast.error(extractApiError(error, "Failed to generate API token"));
+    } finally {
+      setIsGeneratingToken(false);
+    }
   };
 
   const { data: subData } = useSubscription();
@@ -290,6 +338,15 @@ export default function SettingsPage() {
         return;
       }
       credentials = { siteId: wixSiteId, apiKey: wixApiKey, publishStatus: wixPublishStatus };
+    } else if (selectedIntegration === "webhook") {
+      if (!webhookUrl) {
+        toast.error("Webhook URL is required");
+        return;
+      }
+      credentials = { url: webhookUrl, secret: webhookSecret };
+    } else if (selectedIntegration === "api") {
+      setIsIntegrationsDialogOpen(false);
+      return;
     } else if (selectedIntegration === "blog_hosting") {
       if (!blogSubdomain) {
         toast.error("Subdomain is required");
@@ -504,7 +561,7 @@ export default function SettingsPage() {
                 const Icon = integration.icon;
                 const status = getIntegrationStatus(integration.id);
                 const isConfigured = status === "Configured";
-                const isDisabled = integration.id === "api";
+                const isDisabled = false;
 
                 return (
                   <Card 
@@ -891,6 +948,75 @@ export default function SettingsPage() {
                   </select>
                 </div>
               </>
+            )}
+            {selectedIntegration === "webhook" && (
+              <>
+                <div className="grid gap-2">
+                  <Label htmlFor="webhookUrl">Webhook URL</Label>
+                  <Input
+                    id="webhookUrl"
+                    value={webhookUrl}
+                    onChange={(e) => setWebhookUrl(e.target.value)}
+                    placeholder="https://yourdomain.com/webhook"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="webhookSecret">Secret Token (Optional)</Label>
+                  <Input
+                    id="webhookSecret"
+                    type="password"
+                    value={webhookSecret}
+                    onChange={(e) => setWebhookSecret(e.target.value)}
+                    placeholder="E.g., super-secret-string"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    If provided, will be sent as an X-Webhook-Secret header.
+                  </p>
+                </div>
+              </>
+            )}
+            {selectedIntegration === "api" && (
+              <div className="flex flex-col gap-4">
+                <p className="text-sm text-muted-foreground">
+                  Generate an API token to programmatically fetch your content items from VisualRef using our public REST API.
+                </p>
+
+                {generatedApiToken ? (
+                  <div className="p-4 border rounded-md bg-muted flex flex-col gap-2">
+                    <Label>Your API Token</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        readOnly
+                        value={generatedApiToken}
+                        className="font-mono text-xs text-muted-foreground"
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => {
+                          navigator.clipboard.writeText(generatedApiToken);
+                          toast.success("Token copied!");
+                        }}
+                      >
+                        Copy
+                      </Button>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-2 overflow-x-auto space-y-1">
+                      <p><strong>Header:</strong> <code className="bg-background px-1 py-0.5 rounded">Authorization: Bearer {generatedApiToken}</code></p>
+                      <p><strong>Endpoint:</strong> <code className="bg-background px-1 py-0.5 rounded">GET https://api.visualref.com/api/v1/content</code></p>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={generateApiToken}
+                    disabled={isGeneratingToken}
+                  >
+                    {isGeneratingToken && <Loader2 className="animate-spin mr-2 h-4 w-4" />}
+                    Generate New API Key
+                  </Button>
+                )}
+              </div>
             )}
             {selectedIntegration === "blog_hosting" && (
               <>

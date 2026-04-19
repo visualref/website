@@ -609,6 +609,13 @@ export const integrationsApi = {
   delete: async (platform: string): Promise<void> => {
     await apiClient.delete(`/api/integrations/${encodeURIComponent(platform)}`);
   },
+
+  generateApiToken: async (): Promise<{ token: string }> => {
+    const { data } = await apiClient.post<ApiResponse<{ token: string }>>(
+      "/api/integrations/api-token"
+    );
+    return data.data;
+  },
 };
 
 // ==========================================
