@@ -16,8 +16,13 @@ export function middleware(request: NextRequest) {
   }
 
   const cleanHost = host.replace(/:\d+$/, '').toLowerCase();
+  const isInternal = cleanHost === LOCALHOST || 
+                     cleanHost === MAIN_DOMAIN || 
+                     cleanHost === `app.${MAIN_DOMAIN}` || 
+                     cleanHost === `dashboard.${MAIN_DOMAIN}` ||
+                     cleanHost === `www.${MAIN_DOMAIN}`;
 
-  if (cleanHost === LOCALHOST || cleanHost === MAIN_DOMAIN || cleanHost.endsWith(`.${MAIN_DOMAIN}`)) {
+  if (isInternal) {
     return NextResponse.next();
   }
 

@@ -88,18 +88,18 @@ export default async function DomainLayout({
             </div>
           </footer>
         </div>
-        <style jsx global>{`
-          :root {
-            --brand-primary: ${brandColor};
-            --brand-primary-hover: ${adjustColor(brandColor, -10)};
-          }
-          .text-brand { color: var(--brand-primary); }
-          .bg-brand { background-color: var(--brand-primary); }
-          .border-brand { border-color: var(--brand-primary); }
-          .hover\\:text-brand:hover { color: var(--brand-primary); }
-          .hover\\:bg-brand:hover { background-color: var(--brand-primary); }
-        `}</style>
       </body>
+      <style dangerouslySetInnerHTML={{ __html: `
+        :root {
+          --brand-primary: ${brandColor};
+          --brand-primary-hover: ${adjustColor(brandColor, -10)};
+        }
+        .text-brand { color: var(--brand-primary); }
+        .bg-brand { background-color: var(--brand-primary); }
+        .border-brand { border-color: var(--brand-primary); }
+        .hover\\:text-brand:hover { color: var(--brand-primary); }
+        .hover\\:bg-brand:hover { background-color: var(--brand-primary); }
+      ` }} />
     </html>
   );
 }
