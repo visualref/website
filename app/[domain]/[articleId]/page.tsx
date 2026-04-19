@@ -22,10 +22,6 @@ function formatDate(dateString: string): string {
   });
 }
 
-function renderMarkdown(content: string) {
-  return { __html: content };
-}
-
 export default async function ArticlePage({
   params,
 }: {
