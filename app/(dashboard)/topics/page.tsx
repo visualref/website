@@ -253,7 +253,7 @@ function EditTopicForm({ entry, onClose }: { entry: CalendarEntry; onClose: () =
         id: entry.topicId, 
         payload: { 
           title, 
-          createdAt: dateStr ? new Date(dateStr).toISOString() : undefined 
+          scheduled_for: dateStr ? new Date(dateStr).toISOString() : null 
         } 
       },
       { onSuccess: onClose }
@@ -327,8 +327,8 @@ export default function ContentCalendarPage() {
     return topics.map((topic: Topic) => ({
       id: topic.id,
       title: topic.title,
-      date: topic.createdAt
-        ? topic.createdAt.substring(0, 10)
+      date: topic.scheduled_for
+        ? topic.scheduled_for.substring(0, 10)
         : "",
       status: mapTopicStatus(topic.status),
       topicId: topic.id,

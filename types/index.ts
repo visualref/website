@@ -70,6 +70,7 @@ export interface Topic {
   priority?: Priority;
   createdAt: string;
   updatedAt: string;
+  scheduled_for?: string;
   contentItemId?: string;
 }
 
@@ -79,10 +80,12 @@ export interface CreateTopicPayload {
   content_type: ContentType;
   priority: Priority;
   createdAt?: string;
+  scheduled_for?: string | null;
 }
 
 export interface UpdateTopicPayload extends Partial<CreateTopicPayload> {
   createdAt?: string; // ISO string 
+  scheduled_for?: string | null;
 }
 
 // ==========================================

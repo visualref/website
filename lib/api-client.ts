@@ -129,11 +129,12 @@ const mapTopic = (data: any, content?: any): Topic => ({
   status: data.status,
   volume: data.volume,
   difficulty: data.difficulty,
-  contentType: content?.content_type,
-  priority: content?.priority,
-  keywords: data.target_keywords || [],
+  contentType: data.content_type || content?.content_type,
+  priority: data.priority || content?.priority,
+  keywords: data.target_keywords || data.keywords || [],
   createdAt: data.created_at,
   updatedAt: data.updated_at,
+  scheduled_for: data.scheduled_for,
   contentItemId: data.content_items?.[0]?.id || content?.id,
 });
 
