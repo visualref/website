@@ -16,11 +16,17 @@ export function middleware(request: NextRequest) {
   }
 
   const cleanHost = host.replace(/:\d+$/, '').toLowerCase();
+  
+  // Detect if the request is for the main dashboard/app or a hosted blog
   const isInternal = cleanHost === LOCALHOST || 
                      cleanHost === MAIN_DOMAIN || 
-                     cleanHost === `app.${MAIN_DOMAIN}` || 
-                     cleanHost === `dashboard.${MAIN_DOMAIN}` ||
-                     cleanHost === `www.${MAIN_DOMAIN}`;
+                     cleanHost.startsWith('app.') || 
+                     cleanHost.startsWith('dashboard.') ||
+                     cleanHost.startsWith('api.') ||
+                     cleanHost === `www.${MAIN_DOMAIN}` ||
+                     cleanHost.includes('vercel.app');
+
+  console.log(`[Middleware] Host: ${cleanHost}, isInternal: ${isInternal}`);
 
   if (isInternal) {
     return NextResponse.next();
