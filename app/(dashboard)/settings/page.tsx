@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,8 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Globe, Terminal, Ghost, Loader2, CheckCircle2, Trash2, LayoutTemplate, ShoppingCart, Monitor, User, Mail, Shield, Building2, Webhook, Plus, ExternalLink, Search } from "lucide-react";
-import { integrationsApi, competitorsApi } from "@/lib/api-client";
+import { Globe, Terminal, Ghost, Loader2, CheckCircle2, Trash2, LayoutTemplate, ShoppingCart, Monitor, User, Mail, Shield, Building2, Webhook, Plus, ExternalLink, Search, X } from "lucide-react";
+import { integrationsApi, competitorsApi, blogHostingApi, publicBlogApi } from "@/lib/api-client";
 import { useAuthStore } from "@/hooks/use-auth";
 import { useSubscription } from "@/hooks/use-subscription";
 import { toast } from "sonner";
@@ -92,6 +92,12 @@ const INTEGRATIONS_DEFS = [
     icon: Monitor,
     iconColor: "text-black dark:text-white",
   },
+  {
+    id: "blog_hosting",
+    name: "Blog Hosting",
+    icon: Globe,
+    iconColor: "text-indigo-500 dark:text-indigo-400",
+  },
 ];
 
 export default function SettingsPage() {
@@ -131,6 +137,15 @@ export default function SettingsPage() {
   const [wixSiteId, setWixSiteId] = useState("");
   const [wixApiKey, setWixApiKey] = useState("");
   const [wixPublishStatus, setWixPublishStatus] = useState<"publish" | "draft">("publish");
+
+  // Blog Hosting state
+  const [blogSubdomain, setBlogSubdomain] = useState("");
+  const [blogBrandColor, setBlogBrandColor] = useState("#6366f1");
+  const [blogBrandLogo, setBlogBrandLogo] = useState("");
+  const [isVerifyingDns, setIsVerifyingDns] = useState(false);
+  const [dnsVerified, setDnsVerified] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const [isSaving, setIsSaving] = useState(false);
   const [deletingPlatform, setDeletingPlatform] = useState<string | null>(null);
@@ -207,6 +222,10 @@ export default function SettingsPage() {
     setWixSiteId("");
     setWixApiKey("");
     setWixPublishStatus("publish");
+    setBlogSubdomain("");
+    setBlogBrandColor("#6366f1");
+    setBlogBrandLogo("");
+    setDnsVerified(false);
     setIsIntegrationsDialogOpen(true);
   };
 
@@ -271,6 +290,20 @@ export default function SettingsPage() {
         return;
       }
       credentials = { siteId: wixSiteId, apiKey: wixApiKey, publishStatus: wixPublishStatus };
+    } else if (selectedIntegration === "blog_hosting") {
+      if (!blogSubdomain) {
+        toast.error("Subdomain is required");
+        return;
+      }
+      if (!dnsVerified) {
+        toast.error("Please verify DNS before saving");
+        return;
+      }
+      credentials = { 
+        subdomain: blogSubdomain, 
+        brandColor: blogBrandColor, 
+        brandLogo: blogBrandLogo || null 
+      };
     }
 
     setIsSaving(true);
@@ -856,6 +889,136 @@ export default function SettingsPage() {
                     <option value="publish">Publish Immediately</option>
                     <option value="draft">Draft</option>
                   </select>
+                </div>
+              </>
+            )}
+            {selectedIntegration === "blog_hosting" && (
+              <>
+                <div className="grid gap-2">
+                  <Label htmlFor="blogSubdomain">Custom Subdomain</Label>
+                  <Input
+                    id="blogSubdomain"
+                    value={blogSubdomain}
+                    onChange={(e) => {
+                      setBlogSubdomain(e.target.value);
+                      setDnsVerified(false);
+                    }}
+                    placeholder="e.g., blog.yoursite.com"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Create a CNAME record pointing to cname.visualref.com
+                  </p>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="blogBrandColor">Brand Color</Label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={blogBrandColor}
+                      onChange={(e) => setBlogBrandColor(e.target.value)}
+                      className="w-10 h-10 rounded border border-input cursor-pointer"
+                    />
+                    <Input
+                      id="blogBrandColor"
+                      value={blogBrandColor}
+                      onChange={(e) => setBlogBrandColor(e.target.value)}
+                      placeholder="#6366f1"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Brand Logo (optional)</Label>
+                  <div className="flex items-center gap-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => logoInputRef.current?.click()}
+                      disabled={isUploadingLogo}
+                    >
+                      {isUploadingLogo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Upload Logo
+                    </Button>
+                    <input
+                      ref={logoInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (file.size > 2 * 1024 * 1024) {
+                          toast.error("Logo must be under 2MB");
+                          return;
+                        }
+                        setIsUploadingLogo(true);
+                        try {
+                          const res = await blogHostingApi.uploadLogo(file);
+                          setBlogBrandLogo(res.url);
+                          toast.success("Logo uploaded");
+                        } catch (err) {
+                          toast.error("Upload failed");
+                        } finally {
+                          setIsUploadingLogo(false);
+                        }
+                      }}
+                    />
+                    {blogBrandLogo && (
+                      <div className="relative group">
+                        <img
+                          src={blogBrandLogo}
+                          alt="Brand logo preview"
+                          className="h-10 w-auto rounded border border-border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setBlogBrandLogo("")}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {blogBrandLogo && (
+                    <p className="text-xs text-muted-foreground">Logo uploaded</p>
+                  )}
+                </div>
+                <div className="grid gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={async () => {
+                      if (!blogSubdomain) {
+                        toast.error("Please enter a subdomain first");
+                        return;
+                      }
+                      setIsVerifyingDns(true);
+                      try {
+                        const result = await publicBlogApi.verifyDns(blogSubdomain);
+                        if (result.valid) {
+                          setDnsVerified(true);
+                          toast.success("DNS verified successfully!");
+                        } else {
+                          setDnsVerified(false);
+                          const msg = result.cname
+                            ? `DNS points to ${result.cname} but expected ${result.expected}`
+                            : `DNS not configured. Expected: ${result.expected}`;
+                          toast.error(msg);
+                        }
+                      } catch (error) {
+                        setDnsVerified(false);
+                        toast.error("Failed to verify DNS");
+                      } finally {
+                        setIsVerifyingDns(false);
+                      }
+                    }}
+                    disabled={isVerifyingDns}
+                    className="w-full"
+                  >
+                    {isVerifyingDns && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {dnsVerified ? "DNS Verified" : "Verify DNS"}
+                  </Button>
                 </div>
               </>
             )}

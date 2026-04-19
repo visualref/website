@@ -612,6 +612,91 @@ export const integrationsApi = {
 };
 
 // ==========================================
+// Public Blog API (no auth required)
+// ==========================================
+
+export interface BlogArticle {
+  id: string;
+  title: string;
+  excerpt: string;
+  coverImage: string | null;
+  createdAt: string;
+  updatedAt: string;
+  topic: string;
+}
+
+export interface PublicArticle {
+  id: string;
+  title: string;
+  body: string;
+  coverImage: string | null;
+  createdAt: string;
+  updatedAt: string;
+  topic: string;
+  brandColor: string;
+  brandLogo: string | null;
+  workspace: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+}
+
+export interface PublicBlog {
+  workspace: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  integration: {
+    id: string;
+    platform: string;
+    created_at: string;
+    updated_at: string;
+  };
+  brandColor: string;
+  brandLogo: string | null;
+  articles: BlogArticle[];
+}
+
+export const publicBlogApi = {
+  getByDomain: async (domain: string): Promise<PublicBlog> => {
+    const { data } = await apiClient.get<ApiResponse<PublicBlog>>(
+      `/api/public/blog/${encodeURIComponent(domain)}`
+    );
+    return data.data;
+  },
+
+  verifyDns: async (domain: string): Promise<{ valid: boolean; cname: string | null; expected: string }> => {
+    const { data } = await apiClient.get<ApiResponse<{ valid: boolean; cname: string | null; expected: string }>>(
+      '/api/public/verify-dns',
+      { params: { domain } }
+    );
+    return data.data;
+  },
+
+  getArticleById: async (domain: string, articleId: string): Promise<PublicArticle> => {
+    const { data } = await apiClient.get<ApiResponse<PublicArticle>>(
+      `/api/public/blog/${encodeURIComponent(domain)}/articles/${encodeURIComponent(articleId)}`
+    );
+    return data.data;
+  },
+};
+
+export const blogHostingApi = {
+  uploadLogo: async (file: File): Promise<{ url: string; fileId: string }> => {
+    const form = new FormData();
+    form.append('file', file);
+    const { data } = await apiClient.post<ApiResponse<{ url: string; fileId: string }>>(
+      '/api/blog-hosting/upload-logo',
+      form,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+    return data.data;
+  },
+};
+
+// ==========================================
 // Reddit Bot API
 // ==========================================
 
