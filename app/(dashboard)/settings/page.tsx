@@ -731,7 +731,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Generate an Application Password in your WordPress Users > Profile section.
+                  Generate an Application Password in your WordPress Users &gt; Profile section.
                 </p>
               </>
             )}
