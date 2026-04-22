@@ -100,7 +100,7 @@ export default async function ArticlePage({
               ul: ({ children }) => <ul className="list-disc pl-6 mb-4 space-y-2">{children}</ul>,
               ol: ({ children }) => <ol className="list-decimal pl-6 mb-4 space-y-2">{children}</ol>,
               li: ({ children }) => <li className="leading-relaxed">{children}</li>,
-              a: ({ href, children }) => <a href={href} className="text-brand hover:underline">{children}</a>,
+              a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-brand hover:underline">{children}</a>,
               blockquote: ({ children }) => <blockquote className="border-l-4 border-brand/30 pl-4 italic text-muted-foreground my-6">{children}</blockquote>,
               code: ({ children }) => <code className="bg-muted/50 px-1.5 py-0.5 rounded text-sm font-mono">{children}</code>,
               pre: ({ children }) => <pre className="bg-muted/50 p-4 rounded-lg overflow-x-auto mb-4">{children}</pre>,

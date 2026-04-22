@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   ChevronLeft,
   ChevronRight,
@@ -151,40 +152,45 @@ function BlogPill({ entry }: { entry: CalendarEntry }) {
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Navigate to topic detail or content page
-    if (entry.contentItemId) {
-      router.push(`/content/${entry.contentItemId}`);
-    } else {
+    if (!entry.contentItemId) {
       toast.info("This topic hasn't been generated yet.");
     }
   };
+
+  const commonClassName = cn(
+    "w-full text-left px-2 py-1.5 rounded-md text-xs font-medium truncate",
+    "border transition-all duration-200 cursor-pointer block",
+    "hover:scale-[1.02] hover:shadow-md",
+    config.bg,
+    config.text,
+    config.border,
+    config.pulse && "animate-pulse"
+  );
+
+  const innerContent = (
+    <div className="flex items-center gap-1.5 min-w-0">
+      <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", config.dot)} />
+      <span className="truncate">{entry.title}</span>
+    </div>
+  );
 
   return (
     <TooltipProvider delayDuration={200}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <button
-            onClick={handleClick}
-            className={cn(
-              "w-full text-left px-2 py-1.5 rounded-md text-xs font-medium truncate",
-              "border transition-all duration-200 cursor-pointer",
-              "hover:scale-[1.02] hover:shadow-md",
-              config.bg,
-              config.text,
-              config.border,
-              config.pulse && "animate-pulse"
-            )}
-          >
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span
-                className={cn(
-                  "w-1.5 h-1.5 rounded-full shrink-0",
-                  config.dot
-                )}
-              />
-              <span className="truncate">{entry.title}</span>
-            </div>
-          </button>
+          {entry.contentItemId ? (
+            <Link
+              href={`/content/${entry.contentItemId}`}
+              onClick={(e) => e.stopPropagation()}
+              className={commonClassName}
+            >
+              {innerContent}
+            </Link>
+          ) : (
+            <button onClick={handleClick} className={commonClassName}>
+              {innerContent}
+            </button>
+          )}
         </TooltipTrigger>
         <TooltipContent
           side="top"

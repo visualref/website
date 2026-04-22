@@ -1,5 +1,6 @@
 import { publicBlogApi, type PublicBlog, type BlogArticle } from '@/lib/api-client';
 import { Calendar, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 
 async function getBlogData(domain: string): Promise<PublicBlog | null> {
   try {
@@ -20,43 +21,45 @@ function formatDate(dateString: string): string {
 
 function ArticleCard({ article, brandColor }: { article: BlogArticle; brandColor: string }) {
   return (
-    <article className="group bg-card/40 backdrop-blur-xl border border-border/60 rounded-xl overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-      {article.coverImage && (
-        <div className="aspect-video overflow-hidden">
-          <img
-            src={article.coverImage}
-            alt={article.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-        </div>
-      )}
-      <div className="p-6">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-          <Calendar className="w-4 h-4" />
-          <time dateTime={article.updatedAt}>{formatDate(article.updatedAt)}</time>
-          {article.topic && (
-            <>
-              <span className="text-border">•</span>
-              <span className="truncate max-w-[150px]" title={article.topic}>
-                {article.topic}
-              </span>
-            </>
-          )}
-        </div>
-        <h2 className="text-xl font-semibold text-foreground/90 group-hover:text-brand transition-colors mb-3 line-clamp-2">
-          {article.title}
-        </h2>
-        {article.excerpt && (
-          <p className="text-muted-foreground text-sm mb-4 line-clamp-3">
-            {article.excerpt}
-          </p>
+    <Link href={`/${article.id}`} className="block group">
+      <article className="bg-card/40 backdrop-blur-xl border border-border/60 rounded-xl overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+        {article.coverImage && (
+          <div className="aspect-video overflow-hidden">
+            <img
+              src={article.coverImage}
+              alt={article.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          </div>
         )}
-        <div className="flex items-center gap-2 text-sm font-medium" style={{ color: brandColor }}>
-          <span>Read more</span>
-          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+        <div className="p-6">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+            <Calendar className="w-4 h-4" />
+            <time dateTime={article.updatedAt}>{formatDate(article.updatedAt)}</time>
+            {article.topic && (
+              <>
+                <span className="text-border">•</span>
+                <span className="truncate max-w-[150px]" title={article.topic}>
+                  {article.topic}
+                </span>
+              </>
+            )}
+          </div>
+          <h2 className="text-xl font-semibold text-foreground/90 group-hover:text-brand transition-colors mb-3 line-clamp-2">
+            {article.title}
+          </h2>
+          {article.excerpt && (
+            <p className="text-muted-foreground text-sm mb-4 line-clamp-3">
+              {article.excerpt}
+            </p>
+          )}
+          <div className="flex items-center gap-2 text-sm font-medium" style={{ color: brandColor }}>
+            <span>Read more</span>
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </div>
         </div>
-      </div>
-    </article>
+      </article>
+    </Link>
   );
 }
 
