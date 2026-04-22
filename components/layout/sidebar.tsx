@@ -16,6 +16,7 @@ import {
   CreditCard,
   Building2,
   Bot,
+  Webhook,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/hooks/use-auth";
@@ -25,6 +26,7 @@ import apiClient from '@/lib/api-client';
 const systemItems = [
   { href: '/billing', label: 'Billing', icon: CreditCard },
   { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/integration', label: 'Integrations', icon: Webhook },
   { href: '/team', label: 'Team Management', icon: Users },
 ];
 
