@@ -49,60 +49,80 @@ const INTEGRATIONS_DEFS = [
     name: "WordPress",
     icon: Globe,
     iconColor: "text-[#21759b] dark:text-[#38a8e0]",
+    description: "Automatically publish your generated blog posts to your WordPress site.",
+    docsUrl: "https://visualref.com/docs/integration/wordpress",
   },
   {
     id: "api",
     name: "Custom API",
     icon: Terminal,
     iconColor: "text-zinc-600 dark:text-zinc-400",
+    description: "Fetch your content programmatically via our REST API.",
+    docsUrl: "https://visualref.com/docs/integration/public-fetch-api",
   },
   {
     id: "webhook",
     name: "Webhook",
     icon: Webhook,
     iconColor: "text-purple-600 dark:text-purple-400",
+    description: "Receive instant push notifications when content is published.",
+    docsUrl: "https://visualref.com/docs/integration/webhooks",
   },
   {
     id: "dev-to",
     name: "Dev.to",
     icon: Terminal,
     iconColor: "text-zinc-800 dark:text-zinc-200",
+    description: "Publish articles directly to your Dev.to profile.",
+    docsUrl: "https://visualref.com/docs/integration/dev-to",
   },
   {
     id: "ghost",
     name: "Ghost",
     icon: Ghost,
     iconColor: "text-blue-500 dark:text-blue-400",
+    description: "Seamlessly publish and manage content on your Ghost blog.",
+    docsUrl: "https://visualref.com/docs/integration/ghost",
   },
   {
     id: "google_search_console",
     name: "Google Search Console",
     icon: Globe,
     iconColor: "text-green-600 dark:text-green-400",
+    description: "Monitor and optimize your blog's search appearance.",
+    docsUrl: "https://visualref.com/docs/integration/google-search-console",
   },
   {
     id: "webflow",
     name: "Webflow",
     icon: LayoutTemplate,
     iconColor: "text-blue-600 dark:text-blue-500",
+    description: "Push content directly to your Webflow CMS collections.",
+    docsUrl: "https://visualref.com/docs/integration/webflow",
   },
   {
     id: "shopify",
     name: "Shopify",
     icon: ShoppingCart,
     iconColor: "text-[#95BF47] dark:text-[#95BF47]",
+    description: "Publish blog posts to your Shopify store's blog.",
+    docsUrl: "https://visualref.com/docs/integration/shopify",
   },
   {
     id: "wix",
     name: "Wix",
     icon: Monitor,
     iconColor: "text-black dark:text-white",
+    description: "Automatically publish and update your Wix blog.",
+    docsUrl: "https://visualref.com/docs/integration/wix",
   },
   {
     id: "blog_hosting",
     name: "Blog Hosting",
     icon: Globe,
     iconColor: "text-indigo-500 dark:text-indigo-400",
+    description: "Host your blog on a custom subdomain with full brand control.",
+    docsUrl: "https://visualref.com/docs/integration/blog-hosting",
   },
 ];
 
@@ -547,79 +567,189 @@ export default function SettingsPage() {
 
         {/* Integrations Tab */}
         <TabsContent value="integrations" className="space-y-8 pt-2 outline-none">
-          <h2 className="text-2xl font-bold tracking-tight text-foreground/95">
-            Integrate with your favourite CMS platform:
-          </h2>
+          {/* Header */}
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-foreground/95">
+              Integrations
+            </h2>
+            <p className="text-muted-foreground mt-1">
+              Connect your website and publish blogs automatically.
+            </p>
+          </div>
           
           {loading ? (
             <div className="flex h-40 items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {INTEGRATIONS_DEFS.map((integration) => {
-                const Icon = integration.icon;
-                const status = getIntegrationStatus(integration.id);
-                const isConfigured = status === "Configured";
-                const isDisabled = false;
+            <>
+              {/* Main Integrations Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {INTEGRATIONS_DEFS.filter(i => i.id !== 'blog_hosting' && i.id !== 'google_search_console').map((integration) => {
+                  const Icon = integration.icon;
+                  const status = getIntegrationStatus(integration.id);
+                  const isConfigured = status === "Configured";
+                  const isDisabled = false;
 
-                return (
-                  <Card 
-                    key={integration.id}
-                    onClick={() => {
-                      if (!hasAccess && integration.id !== "google_search_console") {
-                        toast.error("Upgrade your plan to connect integrations.");
-                        return;
-                      }
-                      if (integration.id === "google_search_console") {
-                        if (!isConfigured) handleConnectGoogle();
-                      } else if (!isDisabled) {
-                        handleOpenIntegrationsDialog(integration.id);
-                      }
-                    }}
-                    className={cn(
-                      "group relative overflow-hidden transition-all duration-300",
-                      "bg-card/40 backdrop-blur-xl border-border/60 shadow-sm",
-                      isDisabled
-                        ? "opacity-60 cursor-not-allowed"
-                        : integration.id === "google_search_console" && isConfigured
-                        ? "cursor-default"
-                        : "cursor-pointer hover:shadow-lg hover:-translate-y-1 hover:border-primary/40 hover:bg-card/80",
-                      isConfigured && "border-green-500/30"
-                    )}
-                  >
-                    <CardContent className="p-6 flex flex-col gap-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={cn(
-                            "flex shrink-0 items-center justify-center rounded-lg w-8 h-8",
-                            "group-hover:scale-110 transition-transform duration-300 ease-out"
-                          )}>
-                            <Icon className={cn("w-6 h-6", integration.iconColor)} />
+                  return (
+                    <Card 
+                      key={integration.id}
+                      onClick={() => {
+                        if (!hasAccess && integration.id !== "google_search_console") {
+                          toast.error("Upgrade your plan to connect integrations.");
+                          return;
+                        }
+                        if (integration.id === "google_search_console") {
+                          if (!isConfigured) handleConnectGoogle();
+                        } else if (!isDisabled) {
+                          handleOpenIntegrationsDialog(integration.id);
+                        }
+                      }}
+                      className={cn(
+                        "group relative overflow-hidden transition-all duration-300",
+                        "bg-card/40 backdrop-blur-xl border-border/60 shadow-sm",
+                        isDisabled
+                          ? "opacity-60 cursor-not-allowed"
+                          : integration.id === "google_search_console" && isConfigured
+                          ? "cursor-default"
+                          : "cursor-pointer hover:shadow-lg hover:-translate-y-1 hover:border-primary/40 hover:bg-card/80",
+                        isConfigured && "border-green-500/30"
+                      )}
+                    >
+                      <CardContent className="p-6 flex flex-col gap-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "flex shrink-0 items-center justify-center rounded-lg w-10 h-10",
+                              "bg-muted/50 group-hover:scale-110 transition-transform duration-300 ease-out"
+                            )}>
+                              <Icon className={cn("w-5 h-5", integration.iconColor)} />
+                            </div>
+                            <span className="font-semibold text-base tracking-tight text-foreground/90">{integration.name}</span>
                           </div>
-                          <span className="font-semibold text-lg tracking-tight text-foreground/90">{integration.name}</span>
+                          {isConfigured && (
+                            <div onClick={(e) => handleDeleteIntegration(e, integration.id)} className="p-1.5 -mr-1 text-muted-foreground hover:text-red-500 transition-colors z-10 rounded-full hover:bg-red-500/10 cursor-pointer" title="Disconnect">
+                              {deletingPlatform === integration.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                            </div>
+                          )}
                         </div>
-                        {isConfigured && (
-                          <div onClick={(e) => handleDeleteIntegration(e, integration.id)} className="p-2 -mr-2 text-muted-foreground hover:text-red-500 transition-colors z-10 rounded-full hover:bg-red-500/10 cursor-pointer" title="Disconnect">
-                            {deletingPlatform === integration.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                        
+                        <p className="text-sm text-muted-foreground/80 line-clamp-2">
+                          {integration.description}
+                        </p>
+                        
+                        <div className="flex items-center justify-between mt-auto pt-2">
+                          <div className="flex items-center gap-1.5">
+                            {isConfigured && <CheckCircle2 className="w-4 h-4 text-green-500" />}
+                            <span className={cn(
+                              "text-sm font-medium transition-colors",
+                              isDisabled ? "text-muted-foreground/70" : (isConfigured ? "text-green-500" : "text-muted-foreground group-hover:text-foreground/80")
+                            )}>
+                              {isDisabled ? "Coming Soon" : status}
+                            </span>
                           </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        {isConfigured && <CheckCircle2 className="w-4 h-4 text-green-500" />}
-                        <span className={cn(
-                          "text-[15px] font-medium transition-colors",
-                          isDisabled ? "text-muted-foreground/70" : (isConfigured ? "text-green-500" : "text-muted-foreground group-hover:text-foreground/80")
+                          {!isDisabled && !isConfigured && (
+                            <Button variant="outline" size="sm" className="text-xs h-7">
+                              Connect
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+
+              {/* Blog Hosting Section */}
+              {(() => {
+                const blogIntegration = INTEGRATIONS_DEFS.find(i => i.id === 'blog_hosting');
+                const isBlogConfigured = getIntegrationStatus('blog_hosting') === "Configured";
+                return (
+                  <div className="rounded-xl border border-dashed border-border/60 bg-card/20 p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className={cn(
+                          "flex shrink-0 items-center justify-center rounded-lg w-10 h-10",
+                          "bg-indigo-500/10"
                         )}>
-                          {isDisabled ? "Coming Soon" : status}
-                        </span>
+                          {blogIntegration && <Globe className={cn("w-5 h-5", blogIntegration.iconColor)} />}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-foreground/90">Blog Hosting</h3>
+                          <p className="text-sm text-muted-foreground">Host your blog on a custom subdomain with full brand control.</p>
+                        </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                      <div className="flex items-center gap-3">
+                        {isBlogConfigured && <CheckCircle2 className="w-5 h-5 text-green-500" />}
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleOpenIntegrationsDialog('blog_hosting')}
+                          className="gap-2"
+                        >
+                          {isBlogConfigured ? "Manage" : "Set Up"} 
+                          <span className="text-muted-foreground">→</span>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 );
-              })}
-            </div>
+              })()}
+
+              {/* Google Search Console Section */}
+              {(() => {
+                const gscIntegration = INTEGRATIONS_DEFS.find(i => i.id === 'google_search_console');
+                const isGscConfigured = getIntegrationStatus('google_search_console') === "Configured";
+                return (
+                  <div className="rounded-xl border border-dashed border-border/60 bg-card/20 p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className={cn(
+                          "flex shrink-0 items-center justify-center rounded-lg w-10 h-10",
+                          "bg-green-500/10"
+                        )}>
+                          {gscIntegration && <Globe className={cn("w-5 h-5", gscIntegration.iconColor)} />}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-foreground/90">Google Search Console</h3>
+                          <p className="text-sm text-muted-foreground">Monitor and optimize your blog's search appearance.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {isGscConfigured && <CheckCircle2 className="w-5 h-5 text-green-500" />}
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => !isGscConfigured && handleConnectGoogle()}
+                          className="gap-2"
+                        >
+                          {isGscConfigured ? "Manage" : "Connect"} 
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Publishing Settings Placeholder */}
+              <div className="rounded-xl border border-dashed border-border/60 bg-card/20 p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="flex shrink-0 items-center justify-center rounded-lg w-10 h-10 bg-muted/50">
+                      <Webhook className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground/90">Publishing Settings</h3>
+                      <p className="text-sm text-muted-foreground">Configure automatic publishing behavior.</p>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" disabled className="gap-2">
+                    Configure
+                    <span className="text-muted-foreground">→</span>
+                  </Button>
+                </div>
+              </div>
+            </>
           )}
         </TabsContent>
 
@@ -715,14 +845,39 @@ export default function SettingsPage() {
 
       {/* Integration Dialog */}
       <Dialog open={isIntegrationsDialogOpen} onOpenChange={setIsIntegrationsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Configure {selectedConfig?.name}</DialogTitle>
-            <DialogDescription>
-              Enter your credentials to connect with {selectedConfig?.name}. These will be verified and stored securely.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
+        <DialogContent className="sm:max-w-[500px]">
+          {selectedConfig && (
+            <div className="flex items-center gap-4 mb-2">
+              <div className={cn(
+                "flex shrink-0 items-center justify-center rounded-xl w-12 h-12",
+                "bg-muted/50"
+              )}>
+                {(() => {
+                  const Icon = selectedConfig.icon;
+                  return <Icon className={cn("w-6 h-6", selectedConfig.iconColor)} />;
+                })()}
+              </div>
+              <div>
+                <DialogTitle className="text-xl">Connect {selectedConfig.name}</DialogTitle>
+                <DialogDescription className="text-sm text-muted-foreground/80">
+                  {selectedConfig.description}
+                </DialogDescription>
+              </div>
+            </div>
+          )}
+          {selectedConfig?.docsUrl && (
+            <a 
+              href={selectedConfig.docsUrl}
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors mb-2"
+            >
+              View setup instructions
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          )}
+          <div className="rounded-xl border border-border/60 bg-card/30 p-5">
+            <div className="grid gap-4">
             {selectedIntegration === "dev-to" && (
               <div className="grid gap-2">
                 <Label htmlFor="apiKey">API Key</Label>
@@ -1148,6 +1303,7 @@ export default function SettingsPage() {
                 </div>
               </>
             )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsIntegrationsDialogOpen(false)} disabled={isSaving}>
