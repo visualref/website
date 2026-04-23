@@ -48,8 +48,8 @@ function ArticleCard({
   const hasImage = !!article.coverImage;
 
   return (
-    <Link href={`/${article.id}`} className="block h-full">
-      <article className="h-full bg-card/40 backdrop-blur-xl border border-border/60 rounded-xl overflow-hidden flex flex-col">
+    <Link href={`/${article.id}`} className="block group h-full">
+      <article className="h-full bg-card/40 backdrop-blur-xl border border-border/60 rounded-xl overflow-hidden flex flex-col transition-all duration-300 group-hover:border-[#000000] group-hover:shadow-sm">
 
         {/* ── Cover image – fixed height slot ── */}
         {hasImage && (
@@ -61,7 +61,7 @@ function ArticleCard({
               src={article.coverImage!}
               alt={article.title}
               loading="lazy"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           </div>
         )}
