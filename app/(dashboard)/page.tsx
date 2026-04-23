@@ -399,7 +399,7 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">
-                          {actorName && <span>{actorName} </span>}
+                          {actorName && <span>{actorName.split(' ')[0]} </span>}
                           {desc.message}{" "}
                           {desc.highlight && (
                             <span className={desc.highlightColor || "text-primary"}>

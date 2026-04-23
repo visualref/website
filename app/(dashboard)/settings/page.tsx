@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Globe, Terminal, Ghost, Loader2, CheckCircle2, Trash2, LayoutTemplate, ShoppingCart, Monitor, User, Mail, Shield, Building2, Webhook, Plus, ExternalLink, Search, X } from "lucide-react";
-import { integrationsApi, competitorsApi, blogHostingApi, publicBlogApi } from "@/lib/api-client";
+import { integrationsApi, competitorsApi, blogHostingApi, publicBlogApi, authApi } from "@/lib/api-client";
 import { useAuthStore } from "@/hooks/use-auth";
 import { useSubscription } from "@/hooks/use-subscription";
 import { toast } from "sonner";
@@ -127,7 +127,7 @@ const INTEGRATIONS_DEFS = [
 ];
 
 export default function SettingsPage() {
-  const { user } = useAuthStore();
+  const { user, setUser } = useAuthStore();
   
   // Integrations state
   const [activeIntegrations, setActiveIntegrations] = useState<any[]>([]);
@@ -180,6 +180,8 @@ export default function SettingsPage() {
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const [deletingPlatform, setDeletingPlatform] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
 
@@ -454,6 +456,35 @@ export default function SettingsPage() {
     }
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    // Validate file size (e.g., 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image size should be less than 2MB");
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      const { url } = await authApi.uploadAvatar(file);
+      const updatedUser = await authApi.updateProfile({ avatar: url });
+      setUser(updatedUser);
+      toast.success("Profile image updated successfully!");
+    } catch (error: any) {
+      toast.error(extractApiError(error, "Failed to upload profile image"));
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
   const getIntegrationStatus = (id: string) => {
     const platform = id === "dev-to" ? "dev.to" : id;
     const isConfigured = activeIntegrations.some(i => i.platform === platform);
@@ -497,8 +528,32 @@ export default function SettingsPage() {
             <Card className="bg-card/40 backdrop-blur-xl border-border/60 shadow-sm md:col-span-2">
               <CardContent className="p-6">
                 <div className="flex items-center gap-5">
-                  <div className="flex shrink-0 items-center justify-center rounded-full w-16 h-16 bg-gradient-to-br from-primary/80 to-blue-500/80 text-white text-xl font-bold shadow-lg">
-                    {userInitials}
+                  <div 
+                    className="relative group cursor-pointer"
+                    onClick={() => avatarInputRef.current?.click()}
+                  >
+                    <div className="flex shrink-0 items-center justify-center rounded-full w-16 h-16 bg-gradient-to-br from-primary/80 to-blue-500/80 text-white text-xl font-bold shadow-lg overflow-hidden">
+                      {user?.avatar ? (
+                        <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                      ) : (
+                        userInitials
+                      )}
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {isUploadingAvatar ? (
+                        <Loader2 className="w-6 h-6 text-white animate-spin" />
+                      ) : (
+                        <Plus className="w-6 h-6 text-white" />
+                      )}
+                    </div>
+                    <input
+                      type="file"
+                      ref={avatarInputRef}
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleAvatarUpload}
+                      disabled={isUploadingAvatar}
+                    />
                   </div>
                   <div className="min-w-0">
                     <h3 className="text-xl font-semibold tracking-tight text-foreground truncate">

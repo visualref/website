@@ -115,6 +115,22 @@ export const authApi = {
     const { data } = await apiClient.get<ApiResponse<{ user: User }>>("/api/auth/me", config);
     return data.data.user;
   },
+
+  updateProfile: async (payload: { name?: string; avatar?: string }): Promise<User> => {
+    const { data } = await apiClient.patch<ApiResponse<{ user: User }>>("/api/auth/me", payload);
+    return data.data.user;
+  },
+
+  uploadAvatar: async (file: File): Promise<{ url: string }> => {
+    const form = new FormData();
+    form.append("file", file);
+    const { data } = await apiClient.post<ApiResponse<{ url: string }>>(
+      "/api/auth/avatar",
+      form,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+    return data.data;
+  },
 };
 
 // ==========================================
