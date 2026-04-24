@@ -103,21 +103,21 @@ function describeActivity(a: ActivityItem): { message: string; highlight?: strin
   const topic = a.topicText || "";
   switch (a.type) {
     case "blog_generated":
-      return { message: "Blog generated", highlight: topic, highlightColor: "text-primary" };
+      return { message: "generated a blog", highlight: topic, highlightColor: "text-primary" };
     case "blog_published":
       return {
-        message: "Blog published",
+        message: "published a blog",
         highlight: topic,
         highlightColor: "text-green-400",
       };
     case "blog_generation_failed":
       return {
-        message: "Generation failed",
+        message: "failed to generate blog",
         highlight: topic,
         highlightColor: "text-red-400",
       };
     case "cover_updated":
-      return { message: "Cover updated", highlight: topic, highlightColor: "text-primary" };
+      return { message: "updated a cover image", highlight: topic, highlightColor: "text-primary" };
     default:
       return { message: a.message || "", highlight: a.highlightText, highlightColor: a.highlightColor };
   }
