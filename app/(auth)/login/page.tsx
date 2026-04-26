@@ -63,7 +63,7 @@ export default function LoginPage() {
         <div className="text-center">
           <h1 className="text-2xl font-semibold tracking-tight">
             Geo Content
-          </h1>
+            </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Content intelligence platform
           </p>
@@ -201,7 +201,7 @@ export default function LoginPage() {
             Create an account
           </a>
         </div>
-      </div>
+          </div>
 
       {/* Footer Links */}
       <div className="mt-8 flex justify-center space-x-6 text-xs text-muted-foreground/60">
@@ -212,7 +212,7 @@ export default function LoginPage() {
         <a className="hover:text-muted-foreground transition-colors" href="#">
           Terms of Service
         </a>
-      </div>
+          </div>
     </main>
   );
 }
