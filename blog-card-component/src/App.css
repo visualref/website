@@ -1,0 +1,12 @@
+/* remove default margin and padding from everything */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* make the app take up the full page */
+.app {
+  min-height: 100vh;
+  background-color: #F8F8F6;
+}
